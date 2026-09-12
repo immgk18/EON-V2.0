@@ -61,7 +61,9 @@ type CoreState =
 
 export default function Home() {
   const canvasRef =
-    useRef<HTMLCanvasElement>(null);
+    useRef<HTMLCanvasElement>(
+      null
+    );
 
   const recognitionRef =
     useRef<
@@ -71,12 +73,14 @@ export default function Home() {
     >(null);
 
   const [mode, setMode] =
-    useState<"NORMAL" | "ALERT">(
-      "NORMAL"
-    );
+    useState<
+      "NORMAL" | "ALERT"
+    >("NORMAL");
 
   const [coreState, setCoreState] =
-    useState<CoreState>("idle");
+    useState<CoreState>(
+      "idle"
+    );
 
   const [command, setCommand] =
     useState("");
@@ -100,7 +104,9 @@ export default function Home() {
     }
 
     const ctx =
-      canvas.getContext("2d");
+      canvas.getContext(
+        "2d"
+      );
 
     if (!ctx) {
       return;
@@ -122,10 +128,12 @@ export default function Home() {
         1;
 
       canvas.width =
-        window.innerWidth * dpr;
+        window.innerWidth *
+        dpr;
 
       canvas.height =
-        window.innerHeight * dpr;
+        window.innerHeight *
+        dpr;
 
       canvas.style.width =
         `${window.innerWidth}px`;
@@ -145,14 +153,15 @@ export default function Home() {
       stars =
         Array.from(
           {
-            length: Math.min(
-              450,
-              Math.floor(
-                (window.innerWidth *
-                  window.innerHeight) /
-                  4500
-              )
-            ),
+            length:
+              Math.min(
+                450,
+                Math.floor(
+                  (window.innerWidth *
+                    window.innerHeight) /
+                    4500
+                )
+              ),
           },
           () => ({
             x:
@@ -204,7 +213,9 @@ export default function Home() {
         h
       );
 
-      for (const star of stars) {
+      for (
+        const star of stars
+      ) {
         const alpha =
           0.25 +
           0.55 *
@@ -231,14 +242,16 @@ export default function Home() {
           `rgba(255, ${
             190 +
             Math.floor(
-              Math.random() * 50
+              Math.random() *
+                50
             )
           }, 70, ${alpha})`;
 
         ctx.fill();
 
         star.y +=
-          star.speed * 0.025;
+          star.speed *
+          0.025;
 
         if (
           star.y >
@@ -247,7 +260,8 @@ export default function Home() {
           star.y = -2;
 
           star.x =
-            Math.random() * w;
+            Math.random() *
+            w;
         }
       }
 
@@ -278,382 +292,461 @@ export default function Home() {
      ALERT SOUND
      ========================================================= */
 
-  const playAlertSound = () => {
-    try {
-      const AudioContextClass =
-        window.AudioContext ||
-        (
-          window as typeof window & {
-            webkitAudioContext?: typeof AudioContext;
-          }
-        ).webkitAudioContext;
+  const playAlertSound =
+    () => {
+      try {
+        const AudioContextClass =
+          window.AudioContext ||
+          (
+            window as typeof window & {
+              webkitAudioContext?: typeof AudioContext;
+            }
+          ).webkitAudioContext;
 
-      if (!AudioContextClass) {
+        if (
+          !AudioContextClass
+        ) {
+          return;
+        }
+
+        const audioContext =
+          new AudioContextClass();
+
+        const now =
+          audioContext.currentTime;
+
+        const master =
+          audioContext.createGain();
+
+        master.gain.setValueAtTime(
+          0.0001,
+          now
+        );
+
+        master.gain.exponentialRampToValueAtTime(
+          0.18,
+          now + 0.03
+        );
+
+        master.gain.exponentialRampToValueAtTime(
+          0.0001,
+          now + 0.9
+        );
+
+        master.connect(
+          audioContext.destination
+        );
+
+        const low =
+          audioContext.createOscillator();
+
+        low.type =
+          "sawtooth";
+
+        low.frequency.setValueAtTime(
+          80,
+          now
+        );
+
+        low.frequency.exponentialRampToValueAtTime(
+          180,
+          now + 0.45
+        );
+
+        low.connect(
+          master
+        );
+
+        low.start(now);
+
+        low.stop(
+          now + 0.85
+        );
+
+        const high =
+          audioContext.createOscillator();
+
+        high.type =
+          "triangle";
+
+        high.frequency.setValueAtTime(
+          420,
+          now + 0.08
+        );
+
+        high.frequency.exponentialRampToValueAtTime(
+          760,
+          now + 0.5
+        );
+
+        high.connect(
+          master
+        );
+
+        high.start(
+          now + 0.08
+        );
+
+        high.stop(
+          now + 0.68
+        );
+
+        const pulse =
+          audioContext.createOscillator();
+
+        pulse.type =
+          "square";
+
+        pulse.frequency.setValueAtTime(
+          110,
+          now + 0.55
+        );
+
+        pulse.frequency.exponentialRampToValueAtTime(
+          55,
+          now + 0.88
+        );
+
+        const pulseGain =
+          audioContext.createGain();
+
+        pulseGain.gain.value =
+          0.18;
+
+        pulse.connect(
+          pulseGain
+        );
+
+        pulseGain.connect(
+          master
+        );
+
+        pulse.start(
+          now + 0.55
+        );
+
+        pulse.stop(
+          now + 0.88
+        );
+
+        setTimeout(() => {
+          audioContext.close();
+        }, 1000);
+      } catch {
+        // Visual alert still works if audio is unavailable.
+      }
+    };
+
+  /* =========================================================
+     VOICE
+     ========================================================= */
+
+  const startVoice =
+    () => {
+      if (
+        recognitionRef.current
+      ) {
+        recognitionRef.current.stop();
+
+        recognitionRef.current =
+          null;
+
+        setCoreState(
+          "idle"
+        );
+
+        setResponse(
+          "VOICE LISTENING STOPPED"
+        );
+
         return;
       }
 
-      const audioContext =
-        new AudioContextClass();
+      stopSpeaking();
 
-      const now =
-        audioContext.currentTime;
+      const recognition =
+        createVoiceRecognition(
+          {
+            onStart:
+              () => {
+                setCoreState(
+                  "listening"
+                );
 
-      const master =
-        audioContext.createGain();
+                setResponse(
+                  "LISTENING..."
+                );
+              },
 
-      master.gain.setValueAtTime(
-        0.0001,
-        now
-      );
+            onResult:
+              (
+                text
+              ) => {
+                setCommand(
+                  text
+                );
 
-      master.gain.exponentialRampToValueAtTime(
-        0.18,
-        now + 0.03
-      );
+                setResponse(
+                  `VOICE COMMAND: ${text.toUpperCase()}`
+                );
 
-      master.gain.exponentialRampToValueAtTime(
-        0.0001,
-        now + 0.9
-      );
+                setCoreState(
+                  "thinking"
+                );
 
-      master.connect(
-        audioContext.destination
-      );
+                setTimeout(
+                  () => {
+                    setCoreState(
+                      "speaking"
+                    );
 
-      const low =
-        audioContext.createOscillator();
+                    const responseText =
+                      mode ===
+                      "ALERT"
+                        ? `Warning. Command received. ${text}.`
+                        : `Command received. ${text}.`;
 
-      low.type =
-        "sawtooth";
+                    setResponse(
+                      responseText.toUpperCase()
+                    );
 
-      low.frequency.setValueAtTime(
-        80,
-        now
-      );
+                    speak(
+                      responseText,
+                      mode
+                    );
+                  },
+                  700
+                );
 
-      low.frequency.exponentialRampToValueAtTime(
-        180,
-        now + 0.45
-      );
+                setTimeout(
+                  () => {
+                    setCoreState(
+                      "idle"
+                    );
+                  },
+                  4200
+                );
+              },
 
-      low.connect(master);
+            onEnd:
+              () => {
+                recognitionRef.current =
+                  null;
+              },
 
-      low.start(now);
+            onError:
+              (
+                message
+              ) => {
+                setCoreState(
+                  "idle"
+                );
 
-      low.stop(
-        now + 0.85
-      );
+                setResponse(
+                  `VOICE ERROR: ${message.toUpperCase()}`
+                );
 
-      const high =
-        audioContext.createOscillator();
+                recognitionRef.current =
+                  null;
+              },
+          }
+        );
 
-      high.type =
-        "triangle";
-
-      high.frequency.setValueAtTime(
-        420,
-        now + 0.08
-      );
-
-      high.frequency.exponentialRampToValueAtTime(
-        760,
-        now + 0.5
-      );
-
-      high.connect(master);
-
-      high.start(
-        now + 0.08
-      );
-
-      high.stop(
-        now + 0.68
-      );
-
-      const pulse =
-        audioContext.createOscillator();
-
-      pulse.type =
-        "square";
-
-      pulse.frequency.setValueAtTime(
-        110,
-        now + 0.55
-      );
-
-      pulse.frequency.exponentialRampToValueAtTime(
-        55,
-        now + 0.88
-      );
-
-      const pulseGain =
-        audioContext.createGain();
-
-      pulseGain.gain.value =
-        0.18;
-
-      pulse.connect(
-        pulseGain
-      );
-
-      pulseGain.connect(
-        master
-      );
-
-      pulse.start(
-        now + 0.55
-      );
-
-      pulse.stop(
-        now + 0.88
-      );
-
-      setTimeout(() => {
-        audioContext.close();
-      }, 1000);
-    } catch {
-      // Visual alert still works if audio is unavailable.
-    }
-  };
-
-  /* =========================================================
-     VOICE SYSTEM
-     ========================================================= */
-
-  const startVoice = () => {
-    if (
-      recognitionRef.current
-    ) {
-      recognitionRef.current.stop();
+      if (
+        !recognition
+      ) {
+        return;
+      }
 
       recognitionRef.current =
-        null;
+        recognition;
 
-      setCoreState("idle");
+      try {
+        recognition.start();
+      } catch {
+        recognitionRef.current =
+          null;
 
-      setResponse(
-        "VOICE LISTENING STOPPED"
-      );
+        setCoreState(
+          "idle"
+        );
 
-      return;
-    }
-
-    stopSpeaking();
-
-    const recognition =
-      createVoiceRecognition({
-        onStart: () => {
-          setCoreState(
-            "listening"
-          );
-
-          setResponse(
-            "LISTENING..."
-          );
-        },
-
-        onResult: (
-          text
-        ) => {
-          setCommand(text);
-
-          setResponse(
-            `VOICE COMMAND: ${text.toUpperCase()}`
-          );
-
-          setCoreState(
-            "thinking"
-          );
-
-          setTimeout(() => {
-            setCoreState(
-              "speaking"
-            );
-
-            const responseText =
-              `Command received: ${text}`;
-
-            setResponse(
-              responseText.toUpperCase()
-            );
-
-            speak(
-              responseText
-            );
-          }, 700);
-
-          setTimeout(() => {
-            setCoreState(
-              "idle"
-            );
-          }, 3200);
-        },
-
-        onEnd: () => {
-          recognitionRef.current =
-            null;
-        },
-
-        onError: (
-          message
-        ) => {
-          setCoreState(
-            "idle"
-          );
-
-          setResponse(
-            `VOICE ERROR: ${message.toUpperCase()}`
-          );
-
-          recognitionRef.current =
-            null;
-        },
-      });
-
-    if (!recognition) {
-      return;
-    }
-
-    recognitionRef.current =
-      recognition;
-
-    try {
-      recognition.start();
-    } catch {
-      recognitionRef.current =
-        null;
-
-      setCoreState(
-        "idle"
-      );
-
-      setResponse(
-        "VOICE SYSTEM COULD NOT START"
-      );
-    }
-  };
+        setResponse(
+          "VOICE SYSTEM COULD NOT START"
+        );
+      }
+    };
 
   /* =========================================================
      MODE SWITCH
      ========================================================= */
 
-  const toggleMode = () => {
-    setMode(
-      (current) => {
-        const next =
-          current ===
-          "NORMAL"
-            ? "ALERT"
-            : "NORMAL";
+  const toggleMode =
+    () => {
+      setMode(
+        (current) => {
+          const next =
+            current ===
+            "NORMAL"
+              ? "ALERT"
+              : "NORMAL";
 
-        setAlertBurst(
-          true
-        );
-
-        if (
-          next === "ALERT"
-        ) {
-          setCoreState(
-            "alert"
+          setAlertBurst(
+            true
           );
+
+          stopSpeaking();
+
+          if (
+            next === "ALERT"
+          ) {
+            setCoreState(
+              "alert"
+            );
+
+            setResponse(
+              "HIGH ALERT MODE ACTIVATED"
+            );
+
+            playAlertSound();
+
+            setTimeout(
+              () => {
+                speak(
+                  "Warning. High alert mode activated.",
+                  "ALERT"
+                );
+              },
+              250
+            );
+          } else {
+            setCoreState(
+              "idle"
+            );
+
+            setResponse(
+              "NORMAL MODE RESTORED"
+            );
+
+            setTimeout(
+              () => {
+                speak(
+                  "Normal mode restored. How can I assist you?",
+                  "NORMAL"
+                );
+              },
+              250
+            );
+          }
+
+          setTimeout(
+            () => {
+              setAlertBurst(
+                false
+              );
+            },
+            1000
+          );
+
+          return next;
+        }
+      );
+    };
+
+  /* =========================================================
+     TEXT COMMAND
+     ========================================================= */
+
+  const submitCommand =
+    () => {
+      if (
+        !command.trim()
+      ) {
+        return;
+      }
+
+      stopSpeaking();
+
+      const currentCommand =
+        command.trim();
+
+      setCoreState(
+        "thinking"
+      );
+
+      setResponse(
+        `COMMAND RECEIVED: ${currentCommand.toUpperCase()}`
+      );
+
+      setCommand("");
+
+      setTimeout(
+        () => {
+          setCoreState(
+            "speaking"
+          );
+
+          const responseText =
+            mode ===
+            "ALERT"
+              ? `Warning. Command received. ${currentCommand}.`
+              : `Command received. ${currentCommand}.`;
 
           setResponse(
-            "HIGH ALERT MODE ACTIVATED"
+            responseText.toUpperCase()
           );
 
-          playAlertSound();
-        } else {
+          speak(
+            responseText,
+            mode
+          );
+        },
+        900
+      );
+
+      setTimeout(
+        () => {
           setCoreState(
             "idle"
           );
-
-          setResponse(
-            "NORMAL MODE RESTORED"
-          );
-        }
-
-        setTimeout(() => {
-          setAlertBurst(
-            false
-          );
-        }, 1000);
-
-        return next;
-      }
-    );
-  };
+        },
+        4200
+      );
+    };
 
   /* =========================================================
-     TEXT COMMAND SYSTEM
+     RESET
      ========================================================= */
 
-  const submitCommand = () => {
-    if (
-      !command.trim()
-    ) {
-      return;
-    }
+  const resetEON =
+    () => {
+      if (
+        recognitionRef.current
+      ) {
+        recognitionRef.current.stop();
 
-    stopSpeaking();
+        recognitionRef.current =
+          null;
+      }
 
-    const currentCommand =
-      command.trim();
+      stopSpeaking();
 
-    setCoreState(
-      "thinking"
-    );
+      setResponse("");
 
-    setResponse(
-      `COMMAND RECEIVED: ${currentCommand.toUpperCase()}`
-    );
+      setCommand("");
 
-    setCommand("");
-
-    setTimeout(() => {
-      setCoreState(
-        "speaking"
+      setMode(
+        "NORMAL"
       );
-    }, 900);
 
-    setTimeout(() => {
       setCoreState(
         "idle"
       );
-    }, 2200);
-  };
 
-  /* =========================================================
-     RESET EON
-     ========================================================= */
-
-  const resetEON = () => {
-    if (
-      recognitionRef.current
-    ) {
-      recognitionRef.current.stop();
-
-      recognitionRef.current =
-        null;
-    }
-
-    stopSpeaking();
-
-    setResponse("");
-
-    setCommand("");
-
-    setMode(
-      "NORMAL"
-    );
-
-    setCoreState(
-      "idle"
-    );
-
-    setAlertBurst(
-      false
-    );
-  };
+      setAlertBurst(
+        false
+      );
+    };
 
   /* =========================================================
      UI
@@ -662,7 +755,8 @@ export default function Home() {
   return (
     <main
       className={`eon ${
-        mode === "ALERT"
+        mode ===
+        "ALERT"
           ? "alert"
           : ""
       }`}
@@ -674,9 +768,7 @@ export default function Home() {
 
       <div className="spaceGlow" />
 
-      {/* =====================================================
-          HEADER
-          ===================================================== */}
+      {/* HEADER */}
 
       <header className="topBar">
         <div className="statusPanel">
@@ -714,15 +806,15 @@ export default function Home() {
         </div>
       </header>
 
-      {/* =====================================================
-          LEFT TOOLS
-          ===================================================== */}
+      {/* LEFT TOOLS */}
 
       <aside
         className="toolColumn leftTools"
       >
         {tools.map(
-          (tool) => (
+          (
+            tool
+          ) => (
             <button
               className="toolButton"
               key={
@@ -747,15 +839,15 @@ export default function Home() {
         )}
       </aside>
 
-      {/* =====================================================
-          RIGHT TOOLS
-          ===================================================== */}
+      {/* RIGHT TOOLS */}
 
       <aside
         className="toolColumn rightTools"
       >
         {toolsRight.map(
-          (tool) => (
+          (
+            tool
+          ) => (
             <button
               className="toolButton"
               key={
@@ -788,9 +880,7 @@ export default function Home() {
         )}
       </aside>
 
-      {/* =====================================================
-          ENERGY CORE
-          ===================================================== */}
+      {/* ENERGY CORE */}
 
       <section className="coreArea">
         <EnergyCore
@@ -817,9 +907,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* =====================================================
-          COMMAND AREA
-          ===================================================== */}
+      {/* COMMAND AREA */}
 
       <section className="bottomArea">
         <form
@@ -861,10 +949,6 @@ export default function Home() {
           </button>
         </form>
 
-        {/* ===================================================
-            BOTTOM CONTROLS
-            =================================================== */}
-
         <div className="bottomControls">
           <button
             className="controlButton"
@@ -891,10 +975,6 @@ export default function Home() {
             ↻ &nbsp; RESET
           </button>
         </div>
-
-        {/* ===================================================
-            FOOTER
-            =================================================== */}
 
         <div className="footer">
           INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;
