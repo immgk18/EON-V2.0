@@ -1,4 +1,4 @@
 fastapi
 uvicorn[standard]
 pydantic
-openai
+google-genai
