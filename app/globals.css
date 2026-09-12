@@ -1,1239 +1,208 @@
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&display=swap");
-
-:root {
-  --gold: #ffd84a;
-  --gold-bright: #fff4a8;
-  --gold-dark: #8f6500;
-  --cyan: #56dfff;
-  --red: #ff304f;
-  --bg: #020305;
-  --panel: rgba(8, 12, 18, 0.52);
-  --border: rgba(255, 216, 74, 0.32);
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html,
-body {
-  width: 100%;
-  min-height: 100%;
-  overflow: hidden;
-  background: var(--bg);
-}
-
-body {
-  font-family: "Orbitron", sans-serif;
-  color: #ffffff;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  border: none;
-  color: inherit;
-}
-
-button:focus-visible,
-input:focus-visible {
-  outline: 1px solid var(--gold);
-}
-
 /* =========================================================
-   MAIN SPACE
+   HIGH ALERT TRANSITION
    ========================================================= */
 
-.eon {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  min-height: 650px;
-  overflow: hidden;
-  isolation: isolate;
-  background:
-    radial-gradient(
-      circle at 50% 48%,
-      rgba(255, 191, 35, 0.09),
-      transparent 24%
-    ),
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(255, 166, 0, 0.045),
-      transparent 42%
-    ),
-    #020305;
-
-  transition: background 0.8s ease;
-}
-
-.eon.alert {
-  --gold: #ff304f;
-  --gold-bright: #ff9aa8;
-  --gold-dark: #7d0e1d;
-  --border: rgba(255, 48, 79, 0.38);
-
-  background:
-    radial-gradient(
-      circle at 50% 48%,
-      rgba(255, 20, 50, 0.13),
-      transparent 24%
-    ),
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(255, 20, 40, 0.055),
-      transparent 42%
-    ),
-    #020204;
-}
-
-/* =========================================================
-   STARFIELD
-   ========================================================= */
-
-.stars {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -5;
-  opacity: 0.9;
-}
-
-.spaceGlow {
-  position: absolute;
-  width: 80vw;
-  height: 80vw;
-  max-width: 1000px;
-  max-height: 1000px;
-
-  left: 50%;
-  top: 48%;
-
-  transform: translate(-50%, -50%);
-
-  border-radius: 50%;
-  pointer-events: none;
-
-  background: radial-gradient(
-    circle,
-    rgba(255, 208, 64, 0.075) 0%,
-    rgba(255, 178, 0, 0.035) 22%,
-    transparent 65%
-  );
-
-  filter: blur(15px);
-  animation: spacePulse 5s ease-in-out infinite;
-  z-index: -3;
-}
-
-.alert .spaceGlow {
-  background: radial-gradient(
-    circle,
-    rgba(255, 30, 60, 0.1) 0%,
-    rgba(255, 20, 40, 0.04) 25%,
-    transparent 65%
-  );
-}
-
-@keyframes spacePulse {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(0.95);
-    opacity: 0.65;
-  }
-
-  50% {
-    transform: translate(-50%, -50%) scale(1.08);
-    opacity: 1;
-  }
-}
-
-/* =========================================================
-   TOP BAR
-   ========================================================= */
-
-.topBar {
-  position: absolute;
-  top: 28px;
-  left: 34px;
-  right: 34px;
-
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-
-  z-index: 20;
-  pointer-events: none;
-}
-
-.statusPanel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  padding: 11px 17px;
-
-  border: 1px solid rgba(255, 216, 74, 0.2);
-  background: rgba(4, 7, 10, 0.45);
-
-  backdrop-filter: blur(14px);
-
-  color: rgba(255, 255, 255, 0.82);
-
-  font-size: 10px;
-  letter-spacing: 2px;
-
-  box-shadow:
-    inset 0 0 20px rgba(255, 214, 66, 0.025),
-    0 0 25px rgba(0, 0, 0, 0.35);
-}
-
-.onlineDot {
-  width: 7px;
-  height: 7px;
-
-  border-radius: 50%;
-
-  background: var(--gold);
-
-  box-shadow:
-    0 0 7px var(--gold),
-    0 0 18px var(--gold);
-
-  animation: onlinePulse 1.7s ease-in-out infinite;
-}
-
-@keyframes onlinePulse {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(0.8);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-}
-
-.separator {
-  color: rgba(255, 255, 255, 0.22);
-}
-
-.brandPanel {
-  text-align: right;
-  pointer-events: auto;
-}
-
-.brandTitle {
-  color: rgba(255, 255, 255, 0.92);
-
-  font-size: clamp(13px, 1.1vw, 19px);
-  font-weight: 600;
-  letter-spacing: 4px;
-
-  text-shadow: 0 0 16px rgba(255, 216, 74, 0.14);
-}
-
-.brandLine {
-  width: 100%;
-  height: 1px;
-
-  margin: 8px 0;
-
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--gold),
-    transparent
-  );
-
-  opacity: 0.55;
-}
-
-.brandSub {
-  color: rgba(255, 255, 255, 0.38);
-
-  font-size: 7px;
-  letter-spacing: 2px;
-}
-
-/* =========================================================
-   SIDE TOOL COLUMNS
-   ========================================================= */
-
-.toolColumn {
-  position: absolute;
-  top: 50%;
-
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-
-  transform: translateY(-50%);
-
-  z-index: 30;
-}
-
-.leftTools {
-  left: 34px;
-}
-
-.rightTools {
-  right: 34px;
-}
-
-.toolButton {
-  position: relative;
-
-  width: 112px;
-  height: 48px;
-
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  padding: 0 14px;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.045),
-      rgba(255, 255, 255, 0.012)
-    );
-
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
-  color: rgba(255, 255, 255, 0.58);
-
-  font-size: 8px;
-  letter-spacing: 2px;
-
-  cursor: pointer;
-
-  backdrop-filter: blur(12px);
-
-  transition:
-    transform 0.25s ease,
-    border-color 0.25s ease,
-    color 0.25s ease,
-    box-shadow 0.25s ease,
-    background 0.25s ease;
-}
-
-.toolButton::before {
-  content: "";
-
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  width: 2px;
-
-  background: var(--gold);
-
-  opacity: 0;
-
-  box-shadow: 0 0 14px var(--gold);
-
-  transition: opacity 0.25s ease;
-}
-
-.leftTools .toolButton::before {
-  left: -1px;
-}
-
-.rightTools .toolButton::before {
-  right: -1px;
-}
-
-.toolButton:hover {
-  color: var(--gold-bright);
-
-  border-color: var(--border);
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 216, 74, 0.08),
-      rgba(255, 255, 255, 0.018)
-    );
-
-  box-shadow:
-    0 0 25px rgba(255, 216, 74, 0.07),
-    inset 0 0 20px rgba(255, 216, 74, 0.025);
-}
-
-.toolButton:hover::before {
-  opacity: 1;
-}
-
-.leftTools .toolButton:hover {
-  transform: translateX(6px);
-}
-
-.rightTools .toolButton:hover {
-  transform: translateX(-6px);
-}
-
-.toolIcon {
-  width: 18px;
-
-  color: var(--gold);
-
-  font-size: 16px;
-  text-align: center;
-
-  text-shadow: 0 0 10px var(--gold);
-}
-
-/* =========================================================
-   EON ENERGY CORE
-   ========================================================= */
-
-.coreArea {
-  position: absolute;
-
-  left: 50%;
-  top: 49%;
-
-  width: min(46vw, 620px);
-  aspect-ratio: 1 / 1;
-
-  transform: translate(-50%, -50%);
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  z-index: 5;
-}
-
-/* Main atmospheric energy */
-
-.coreArea::before {
-  content: "";
-
-  position: absolute;
-  inset: 5%;
-
-  border-radius: 50%;
-
-  background:
-    radial-gradient(
-      circle,
-      rgba(255, 224, 102, 0.18) 0%,
-      rgba(255, 205, 40, 0.075) 22%,
-      rgba(255, 180, 0, 0.025) 43%,
-      transparent 70%
-    );
-
-  filter: blur(18px);
-
-  animation: coreBreath 3.2s ease-in-out infinite;
-}
-
-.coreArea::after {
-  content: "";
-
-  position: absolute;
-  inset: 17%;
-
-  border-radius: 50%;
-
-  border: 1px solid rgba(255, 216, 74, 0.06);
-
-  box-shadow:
-    0 0 45px rgba(255, 211, 57, 0.09),
-    inset 0 0 45px rgba(255, 211, 57, 0.04);
-
-  animation: slowSpin 24s linear infinite;
-}
-
-@keyframes coreBreath {
-  0%,
-  100% {
-    transform: scale(0.94);
-    opacity: 0.65;
-  }
-
-  50% {
-    transform: scale(1.08);
-    opacity: 1;
-  }
-}
-
-/* =========================================================
-   OUTER ENERGY
-   ========================================================= */
-
-.outerEnergy {
-  position: absolute;
-  inset: 3%;
-
-  border-radius: 50%;
-
-  border: 1px solid rgba(255, 216, 74, 0.09);
-
-  pointer-events: none;
-}
-
-.energyOne {
-  transform: rotate(20deg) scaleX(1.12);
-
-  border-top-color: rgba(255, 230, 105, 0.6);
-  border-bottom-color: transparent;
-
-  filter: blur(0.3px);
-
-  animation: orbitOne 8s linear infinite;
-}
-
-.energyTwo {
-  transform: rotate(-35deg) scaleX(0.78);
-
-  border-left-color: rgba(255, 216, 74, 0.5);
-  border-right-color: transparent;
-
-  animation: orbitTwo 11s linear infinite reverse;
-}
-
-.energyThree {
-  transform: rotate(65deg) scaleY(0.76);
-
-  border-top-color: rgba(255, 191, 31, 0.35);
-  border-right-color: transparent;
-
-  animation: orbitThree 14s linear infinite;
-}
-
-@keyframes orbitOne {
-  from {
-    transform: rotate(0deg) scaleX(1.12);
-  }
-
-  to {
-    transform: rotate(360deg) scaleX(1.12);
-  }
-}
-
-@keyframes orbitTwo {
-  from {
-    transform: rotate(0deg) scaleX(0.78);
-  }
-
-  to {
-    transform: rotate(360deg) scaleX(0.78);
-  }
-}
-
-@keyframes orbitThree {
-  from {
-    transform: rotate(0deg) scaleY(0.76);
-  }
-
-  to {
-    transform: rotate(360deg) scaleY(0.76);
-  }
-}
-
-/* =========================================================
-   ENERGY RINGS
-   ========================================================= */
-
-.energyRing {
-  position: absolute;
-
-  border-radius: 50%;
-
-  pointer-events: none;
-
-  border-style: solid;
-
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-
-.ringOne {
-  width: 72%;
-  height: 72%;
-
-  border-width: 1px;
-
-  border-color:
-    rgba(255, 236, 138, 0.7)
-    rgba(255, 216, 74, 0.1)
-    rgba(255, 216, 74, 0.3)
-    transparent;
-
-  box-shadow:
-    0 0 12px rgba(255, 216, 74, 0.35),
-    inset 0 0 12px rgba(255, 216, 74, 0.08);
-
-  animation: ringSpin 7s linear infinite;
-}
-
-.ringTwo {
-  width: 63%;
-  height: 63%;
-
-  border-width: 2px;
-
-  border-color:
-    transparent
-    rgba(255, 219, 83, 0.65)
-    rgba(255, 232, 117, 0.2)
-    transparent;
-
-  animation: ringSpinReverse 5.5s linear infinite;
-}
-
-.ringThree {
-  width: 54%;
-  height: 54%;
-
-  border-width: 1px;
-
-  border-color:
-    rgba(255, 242, 165, 0.65)
-    transparent
-    rgba(255, 190, 20, 0.55)
-    rgba(255, 216, 74, 0.15);
-
-  box-shadow:
-    0 0 20px rgba(255, 214, 61, 0.25);
-
-  animation: ringSpin 4s linear infinite;
-}
-
-.ringFour {
-  width: 47%;
-  height: 47%;
-
-  border-width: 1px;
-
-  border-color:
-    transparent
-    rgba(255, 248, 185, 0.8)
-    transparent
-    rgba(255, 194, 25, 0.5);
-
-  animation: ringSpinReverse 3s linear infinite;
-}
-
-@keyframes ringSpin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes ringSpinReverse {
-  from {
-    transform: rotate(360deg);
-  }
-
-  to {
-    transform: rotate(0deg);
-  }
-}
-
-/* =========================================================
-   HOLLOW CENTER
-   ========================================================= */
-
-.coreHole {
-  position: absolute;
-
-  width: 37%;
-  height: 37%;
-
-  border-radius: 50%;
-
-  background:
-    radial-gradient(
-      circle,
-      #010101 0%,
-      #010101 54%,
-      rgba(255, 214, 69, 0.07) 67%,
-      transparent 72%
-    );
-
-  border: 2px solid rgba(255, 228, 119, 0.78);
-
-  box-shadow:
-    0 0 8px rgba(255, 222, 95, 0.8),
-    0 0 24px rgba(255, 200, 30, 0.5),
-    0 0 60px rgba(255, 186, 0, 0.18),
-    inset 0 0 22px rgba(255, 208, 50, 0.12);
-
-  animation: holePulse 2.8s ease-in-out infinite;
-}
-
-@keyframes holePulse {
-  0%,
-  100% {
-    transform: scale(0.97);
-    box-shadow:
-      0 0 8px rgba(255, 222, 95, 0.7),
-      0 0 24px rgba(255, 200, 30, 0.42),
-      0 0 60px rgba(255, 186, 0, 0.14),
-      inset 0 0 22px rgba(255, 208, 50, 0.1);
-  }
-
-  50% {
-    transform: scale(1.035);
-    box-shadow:
-      0 0 12px rgba(255, 238, 145, 0.95),
-      0 0 38px rgba(255, 211, 59, 0.65),
-      0 0 85px rgba(255, 190, 0, 0.24),
-      inset 0 0 30px rgba(255, 220, 80, 0.15);
-  }
-}
-
-/* =========================================================
-   PARTICLES
-   ========================================================= */
-
-.energyParticles {
-  position: absolute;
-  inset: 0;
-
-  border-radius: 50%;
-
-  animation: particleRotation 30s linear infinite;
-}
-
-@keyframes particleRotation {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.particle {
-  --radius: 45%;
-  --distance: calc(18% + (var(--i) % 5) * 7%);
-
+.alertBurst {
   position: absolute;
 
   left: 50%;
   top: 50%;
 
-  width: 3px;
-  height: 3px;
-
-  border-radius: 50%;
-
-  background: var(--gold-bright);
-
-  box-shadow:
-    0 0 5px var(--gold),
-    0 0 12px var(--gold);
-
-  transform:
-    rotate(var(--angle))
-    translateX(var(--distance));
-
-  animation:
-    particlePulse 1.4s ease-in-out infinite alternate;
-
-  animation-delay: calc(var(--i) * -0.08s);
-}
-
-@keyframes particlePulse {
-  from {
-    opacity: 0.25;
-    scale: 0.55;
-  }
-
-  to {
-    opacity: 1;
-    scale: 1.4;
-  }
-}
-
-/* =========================================================
-   RESPONSE
-   ========================================================= */
-
-.response {
-  position: absolute;
-
-  bottom: -54px;
-
-  max-width: 80%;
-
-  padding: 9px 15px;
-
-  border: 1px solid rgba(255, 216, 74, 0.2);
-
-  background: rgba(2, 4, 6, 0.65);
-
-  backdrop-filter: blur(12px);
-
-  color: rgba(255, 235, 145, 0.82);
-
-  font-size: 7px;
-  letter-spacing: 1.4px;
-
-  text-align: center;
-
-  animation: responseIn 0.35s ease-out;
-}
-
-@keyframes responseIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* =========================================================
-   COMMAND AREA
-   ========================================================= */
-
-.bottomArea {
-  position: absolute;
-
-  left: 50%;
-  bottom: 24px;
-
-  width: min(650px, 55vw);
-
-  transform: translateX(-50%);
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  z-index: 30;
-}
-
-.commandBar {
-  width: 100%;
-  height: 48px;
-
-  display: flex;
-  align-items: center;
-
-  border: 1px solid rgba(255, 216, 74, 0.23);
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 216, 74, 0.025),
-      rgba(4, 7, 10, 0.76),
-      rgba(255, 216, 74, 0.025)
-    );
-
-  backdrop-filter: blur(18px);
-
-  box-shadow:
-    0 0 30px rgba(0, 0, 0, 0.5),
-    inset 0 0 30px rgba(255, 216, 74, 0.025);
-}
-
-.commandWave {
-  padding-left: 16px;
-
-  color: var(--gold);
-
-  font-size: 9px;
-  letter-spacing: 1px;
-
-  animation: wavePulse 1.2s ease-in-out infinite;
-}
-
-@keyframes wavePulse {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-
-  50% {
-    opacity: 1;
-  }
-}
-
-.commandBar input {
-  flex: 1;
-
-  height: 100%;
-
-  padding: 0 14px;
-
-  border: none;
-  outline: none;
-
-  background: transparent;
-
-  color: rgba(255, 255, 255, 0.85);
-
-  font-size: 9px;
-  letter-spacing: 1px;
-}
-
-.commandBar input::placeholder {
-  color: rgba(255, 255, 255, 0.25);
-}
-
-.sendButton {
-  width: 50px;
-  height: 100%;
-
-  background: transparent;
-
-  color: var(--gold);
-
-  font-size: 18px;
-
-  cursor: pointer;
-
-  transition:
-    background 0.25s ease,
-    text-shadow 0.25s ease;
-}
-
-.sendButton:hover {
-  background: rgba(255, 216, 74, 0.06);
-  text-shadow: 0 0 12px var(--gold);
-}
-
-/* =========================================================
-   BOTTOM BUTTONS
-   ========================================================= */
-
-.bottomControls {
-  display: flex;
-  gap: 12px;
-
-  margin-top: 12px;
-}
-
-.controlButton {
-  min-width: 125px;
-
-  padding: 8px 15px;
-
-  background: rgba(5, 8, 11, 0.55);
-
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
-  color: rgba(255, 255, 255, 0.45);
-
-  font-size: 7px;
-  letter-spacing: 1.8px;
-
-  cursor: pointer;
-
-  backdrop-filter: blur(10px);
-
-  transition: all 0.25s ease;
-}
-
-.controlButton:hover {
-  color: var(--gold-bright);
-
-  border-color: var(--border);
-
-  box-shadow: 0 0 20px rgba(255, 216, 74, 0.08);
-}
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-
-.footer {
-  margin-top: 10px;
-
-  color: rgba(255, 255, 255, 0.2);
-
-  font-size: 6px;
-  letter-spacing: 2px;
-
-  text-align: center;
-}
-
-/* =========================================================
-   ALERT MODE
-   ========================================================= */
-
-.alert .energyRing,
-.alert .outerEnergy {
-  animation-duration: 1.8s;
-}
-
-.alert .coreHole {
-  animation-duration: 1s;
-}
-
-.alert .particle {
-  animation-duration: 0.55s;
-}
-
-.alert .statusPanel {
-  border-color: rgba(255, 48, 79, 0.3);
-}
-
-.alert .onlineDot {
-  background: var(--red);
-  box-shadow:
-    0 0 8px var(--red),
-    0 0 22px var(--red);
-}
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 1000px) {
-  .toolButton {
-    width: 94px;
-  }
-
-  .leftTools {
-    left: 16px;
-  }
-
-  .rightTools {
-    right: 16px;
-  }
-
-  .topBar {
-    left: 18px;
-    right: 18px;
-  }
-
-  .coreArea {
-    width: min(52vw, 540px);
-  }
-
-  .bottomArea {
-    width: 60vw;
-  }
-}
-
-@media (max-width: 760px) {
-  html,
-  body {
-    overflow: auto;
-  }
-
-  .eon {
-    min-height: 760px;
-    height: 100vh;
-  }
-
-  .topBar {
-    top: 15px;
-  }
-
-  .statusPanel {
-    font-size: 7px;
-    padding: 8px 10px;
-  }
-
-  .brandTitle {
-    font-size: 9px;
-    letter-spacing: 2px;
-  }
-
-  .brandSub {
-    display: none;
-  }
-
-  .toolColumn {
-    top: auto;
-    bottom: 145px;
-
-    transform: none;
-
-    flex-direction: row;
-    gap: 7px;
-  }
-
-  .leftTools {
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .rightTools {
-    display: none;
-  }
-
-  .toolButton {
-    width: 65px;
-    height: 38px;
-
-    justify-content: center;
-
-    padding: 4px;
-
-    font-size: 6px;
-  }
-
-  .toolIcon {
-    display: none;
-  }
-
-  .coreArea {
-    top: 46%;
-    width: min(72vw, 450px);
-  }
-
-  .bottomArea {
-    bottom: 18px;
-    width: calc(100vw - 30px);
-  }
-
-  .commandBar {
-    height: 45px;
-  }
-
-  .bottomControls {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .controlButton {
-    min-width: 110px;
-  }
-
-  .footer {
-    font-size: 5px;
-  }
-}
-
-@media (max-height: 700px) {
-  .coreArea {
-    width: min(38vw, 470px);
-  }
-
-  .bottomArea {
-    bottom: 12px;
-  }
-
-  .toolButton {
-    height: 42px;
-  }
-}
-
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* =========================================================
-   LIVING ENERGY CORE COMPONENT
-   ========================================================= */
-
-.energyCore {
-  position: absolute;
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  pointer-events: none;
-}
-
-.energyCanvas {
-  position: absolute;
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  display: block;
-}
-
-.coreCenter {
-  position: absolute;
-
-  width: 37%;
+  width: 18%;
   aspect-ratio: 1;
 
   border-radius: 50%;
 
   pointer-events: none;
-}
 
-.coreState {
-  position: absolute;
+  z-index: 50;
 
-  bottom: 19%;
-
-  color: var(--gold);
-
-  font-size: 7px;
-  letter-spacing: 3px;
+  transform:
+    translate(-50%, -50%)
+    scale(0.2);
 
   opacity: 0;
-
-  transition: opacity 0.3s ease;
 }
 
-.energyCore.state-listening .coreState,
-.energyCore.state-thinking .coreState,
-.energyCore.state-speaking .coreState,
-.energyCore.state-alert .coreState {
-  opacity: 0.75;
+/* =========================================================
+   RED ALERT ENTRY
+   ========================================================= */
+
+.enteringAlert {
+  border: 2px solid
+    rgba(255, 48, 79, 0.95);
+
+  box-shadow:
+    0 0 15px
+      rgba(255, 48, 79, 0.95),
+    0 0 45px
+      rgba(255, 48, 79, 0.7),
+    0 0 100px
+      rgba(255, 48, 79, 0.35);
+
+  animation:
+    alertExpansion
+    1s
+    cubic-bezier(
+      0.15,
+      0.8,
+      0.25,
+      1
+    )
+    forwards;
 }
 
-.energyCore.state-listening .coreState {
-  animation: stateTextPulse 0.9s ease-in-out infinite;
+.enteringAlert::before,
+.enteringAlert::after {
+  content: "";
+
+  position: absolute;
+
+  inset: -20%;
+
+  border-radius: 50%;
+
+  border: 1px solid
+    rgba(255, 48, 79, 0.6);
+
+  animation:
+    alertWave
+    0.9s
+    ease-out
+    forwards;
 }
 
-.energyCore.state-thinking .coreState {
-  animation: stateTextPulse 0.6s ease-in-out infinite;
+.enteringAlert::after {
+  inset: -50%;
+
+  border-color:
+    rgba(255, 48, 79, 0.25);
+
+  animation-delay:
+    0.12s;
 }
 
-.energyCore.state-speaking .coreState {
-  animation: stateTextPulse 1s ease-in-out infinite;
+/* =========================================================
+   GOLD NORMAL MODE RETURN
+   ========================================================= */
+
+.leavingAlert {
+  border: 2px solid
+    rgba(255, 216, 74, 0.9);
+
+  box-shadow:
+    0 0 20px
+      rgba(255, 216, 74, 0.8),
+    0 0 65px
+      rgba(255, 216, 74, 0.4),
+    0 0 110px
+      rgba(255, 190, 0, 0.2);
+
+  animation:
+    normalExpansion
+    0.7s
+    ease-out
+    forwards;
 }
 
-.energyCore.state-alert .coreState {
-  color: var(--red);
-  animation: stateTextPulse 0.45s ease-in-out infinite;
-}
+/* =========================================================
+   ALERT SHOCKWAVE
+   ========================================================= */
 
-@keyframes stateTextPulse {
-  0%,
+@keyframes alertExpansion {
+  0% {
+    transform:
+      translate(-50%, -50%)
+      scale(0.15);
+
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  30% {
+    transform:
+      translate(-50%, -50%)
+      scale(0.8);
+
+    opacity: 0.95;
+  }
+
+  55% {
+    transform:
+      translate(-50%, -50%)
+      scale(2.5);
+
+    opacity: 0.7;
+  }
+
   100% {
-    opacity: 0.35;
+    transform:
+      translate(-50%, -50%)
+      scale(5.5);
+
+    opacity: 0;
+  }
+}
+
+/* =========================================================
+   ALERT WAVE
+   ========================================================= */
+
+@keyframes alertWave {
+  0% {
+    transform: scale(0.15);
+
+    opacity: 0.95;
+  }
+
+  35% {
+    opacity: 0.65;
+  }
+
+  100% {
+    transform: scale(2.2);
+
+    opacity: 0;
+  }
+}
+
+/* =========================================================
+   RETURN TO NORMAL
+   ========================================================= */
+
+@keyframes normalExpansion {
+  0% {
+    transform:
+      translate(-50%, -50%)
+      scale(0.15);
+
+    opacity: 0;
+  }
+
+  20% {
+    transform:
+      translate(-50%, -50%)
+      scale(0.8);
+
+    opacity: 0.9;
   }
 
   50% {
-    opacity: 1;
+    transform:
+      translate(-50%, -50%)
+      scale(2.2);
+
+    opacity: 0.55;
+  }
+
+  100% {
+    transform:
+      translate(-50%, -50%)
+      scale(4.5);
+
+    opacity: 0;
   }
 }
