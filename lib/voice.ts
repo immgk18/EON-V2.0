@@ -5,42 +5,17 @@
  * EON 2.0 — VOICE ENGINE
  * Enhanced Operations Network
  * ============================================================
- *
- * Compatible with the existing EON page.tsx API.
- *
- * NORMAL MODE
- * - Friendly
- * - Lower male-oriented pitch
- * - Natural speaking speed
- *
- * HIGH ALERT / NO_LIMITS
- * - Deep
- * - Slow
- * - Mechanical
- * - Deliberate pauses
- * - Dark synthetic delivery
- *
- * ============================================================
  */
 
 export type EONMode =
   | "NORMAL"
+  | "ALERT"
   | "NO_LIMITS";
 
-/* ============================================================
-   GLOBAL MODE
-   ============================================================ */
+let currentMode: EONMode = "NORMAL";
 
-let currentMode: EONMode =
-  "NORMAL";
-
-let normalVoice:
-  SpeechSynthesisVoice | null =
-    null;
-
-let alertVoice:
-  SpeechSynthesisVoice | null =
-    null;
+let normalVoice: SpeechSynthesisVoice | null = null;
+let alertVoice: SpeechSynthesisVoice | null = null;
 
 /* ============================================================
    SPEECH RECOGNITION TYPES
@@ -62,24 +37,18 @@ export type VoiceRecognitionCallbacks = {
 
 export type VoiceRecognitionInstance = {
   continuous: boolean;
-
   interimResults: boolean;
-
   lang: string;
 
   start: () => void;
-
   stop: () => void;
-
   abort: () => void;
 
   onstart:
     (() => void) | null;
 
   onresult:
-    ((
-      event: RecognitionEvent
-    ) => void) | null;
+    ((event: RecognitionEvent) => void) | null;
 
   onerror:
     ((event: Event) => void) | null;
@@ -100,8 +69,7 @@ type RecognitionEvent =
   };
 
 type RecognitionConstructor =
-  new () =>
-    VoiceRecognitionInstance;
+  new () => VoiceRecognitionInstance;
 
 /* ============================================================
    BROWSER SUPPORT
@@ -109,8 +77,7 @@ type RecognitionConstructor =
 
 function speechSupported(): boolean {
   return (
-    typeof window !==
-      "undefined" &&
+    typeof window !== "undefined" &&
     "speechSynthesis" in window
   );
 }
@@ -128,11 +95,10 @@ function selectVoice(
   }
 
   const englishVoices =
-    voices.filter(
-      (voice) =>
-        voice.lang
-          .toLowerCase()
-          .startsWith("en")
+    voices.filter((voice) =>
+      voice.lang
+        .toLowerCase()
+        .startsWith("en")
     );
 
   const candidates =
@@ -166,23 +132,15 @@ function selectVoice(
   ];
 
   let bestVoice:
-    SpeechSynthesisVoice | null =
-      null;
+    SpeechSynthesisVoice | null = null;
 
-  let bestScore =
-    -Infinity;
+  let bestScore = -Infinity;
 
-  for (
-    const voice of candidates
-  ) {
+  for (const voice of candidates) {
     const name =
       voice.name.toLowerCase();
 
     let score = 0;
-
-    /*
-     * Prefer Indian English.
-     */
 
     if (
       voice.lang
@@ -198,39 +156,17 @@ function selectVoice(
       score += 8;
     }
 
-    /*
-     * Male-oriented voices.
-     */
-
-    for (
-      const keyword of maleKeywords
-    ) {
-      if (
-        name.includes(keyword)
-      ) {
+    for (const keyword of maleKeywords) {
+      if (name.includes(keyword)) {
         score += 15;
       }
     }
 
-    /*
-     * Avoid female-oriented
-     * voices where possible.
-     */
-
-    for (
-      const keyword of femaleKeywords
-    ) {
-      if (
-        name.includes(keyword)
-      ) {
+    for (const keyword of femaleKeywords) {
+      if (name.includes(keyword)) {
         score -= 10;
       }
     }
-
-    /*
-     * High Alert slightly prefers
-     * local/system voices.
-     */
 
     if (
       alert &&
@@ -239,14 +175,9 @@ function selectVoice(
       score += 2;
     }
 
-    if (
-      score > bestScore
-    ) {
-      bestScore =
-        score;
-
-      bestVoice =
-        voice;
+    if (score > bestScore) {
+      bestScore = score;
+      bestVoice = voice;
     }
   }
 
@@ -258,44 +189,37 @@ function selectVoice(
    ============================================================ */
 
 export function initializeVoiceEngine(): void {
-  if (
-    !speechSupported()
-  ) {
+  if (!speechSupported()) {
     return;
   }
 
-  const loadVoices =
-    () => {
-      const voices =
-        window.speechSynthesis
-          .getVoices();
+  const loadVoices = () => {
+    const voices =
+      window.speechSynthesis.getVoices();
 
-      if (
-        !voices.length
-      ) {
-        return;
-      }
+    if (!voices.length) {
+      return;
+    }
 
-      normalVoice =
-        selectVoice(
-          voices,
-          false
-        );
+    normalVoice =
+      selectVoice(
+        voices,
+        false
+      );
 
-      alertVoice =
-        selectVoice(
-          voices,
-          true
-        );
-    };
+    alertVoice =
+      selectVoice(
+        voices,
+        true
+      );
+  };
 
   loadVoices();
 
-  window.speechSynthesis
-    .addEventListener(
-      "voiceschanged",
-      loadVoices
-    );
+  window.speechSynthesis.addEventListener(
+    "voiceschanged",
+    loadVoices
+  );
 }
 
 /* ============================================================
@@ -309,12 +233,11 @@ export function getMode(): EONMode {
 export function setMode(
   mode: EONMode
 ): void {
-  currentMode =
-    mode;
+  currentMode = mode;
 }
 
 /* ============================================================
-   NORMAL VOICE
+   NORMAL MODE
    ============================================================ */
 
 function speakNormal(
@@ -328,10 +251,6 @@ function speakNormal(
   utterance.lang =
     "en-IN";
 
-  /*
-   * Friendly and controlled.
-   */
-
   utterance.rate =
     0.94;
 
@@ -341,21 +260,18 @@ function speakNormal(
   utterance.volume =
     1;
 
-  if (
-    normalVoice
-  ) {
+  if (normalVoice) {
     utterance.voice =
       normalVoice;
   }
 
-  window.speechSynthesis
-    .speak(
-      utterance
-    );
+  window.speechSynthesis.speak(
+    utterance
+  );
 }
 
 /* ============================================================
-   HIGH ALERT VOICE
+   HIGH ALERT MODE
    ============================================================ */
 
 function speakHighAlert(
@@ -363,31 +279,14 @@ function speakHighAlert(
 ): void {
   /*
    * Mechanical pauses.
-   *
-   * Browser TTS doesn't expose a
-   * universal robotic audio filter,
-   * so punctuation is used to create
-   * deliberate machine-like cadence.
    */
 
   const roboticText =
     text
-      .replace(
-        /\s+/g,
-        " "
-      )
-      .replace(
-        /\./g,
-        "... "
-      )
-      .replace(
-        /,/g,
-        "... "
-      )
-      .replace(
-        /!/g,
-        "... "
-      )
+      .replace(/\s+/g, " ")
+      .replace(/\./g, "... ")
+      .replace(/,/g, "... ")
+      .replace(/!/g, "... ")
       .trim();
 
   const utterance =
@@ -399,14 +298,14 @@ function speakHighAlert(
     "en-IN";
 
   /*
-   * VERY LOW PITCH
+   * Deep robotic pitch.
    */
 
   utterance.pitch =
     0.32;
 
   /*
-   * SLOW DELIVERY
+   * Slow intimidating cadence.
    */
 
   utterance.rate =
@@ -415,109 +314,77 @@ function speakHighAlert(
   utterance.volume =
     1;
 
-  if (
-    alertVoice
-  ) {
+  if (alertVoice) {
     utterance.voice =
       alertVoice;
   }
 
-  window.speechSynthesis
-    .speak(
-      utterance
-    );
+  window.speechSynthesis.speak(
+    utterance
+  );
 }
 
 /* ============================================================
    MAIN SPEAK FUNCTION
-   ============================================================
- *
- * IMPORTANT:
- *
- * The existing page.tsx calls:
- *
- *     speak(responseText, mode)
- *
- * Therefore the second parameter is OPTIONAL.
- *
- * This fixes the TypeScript error:
- *
- *     Expected 1 arguments, but got 2.
- *
- * ============================================================
- */
+   ============================================================ */
 
 export function speak(
   text: string,
   mode?: EONMode
 ): void {
-  if (
-    !speechSupported()
-  ) {
+  if (!speechSupported()) {
     return;
   }
 
   const cleanText =
     text.trim();
 
-  if (
-    !cleanText
-  ) {
+  if (!cleanText) {
     return;
   }
 
   /*
-   * If page.tsx explicitly provides
-   * a mode, use that mode for THIS
-   * utterance.
-   *
-   * Otherwise use the global mode.
+   * Use explicitly supplied mode,
+   * otherwise use current EON mode.
    */
 
   const speechMode =
-    mode ??
-    currentMode;
-
-  /*
-   * Keep global mode synchronized
-   * when the caller explicitly passes it.
-   */
+    mode ?? currentMode;
 
   if (mode) {
-    currentMode =
-      mode;
+    currentMode = mode;
   }
 
   /*
    * Stop previous speech.
    */
 
-  window.speechSynthesis
-    .cancel();
+  window.speechSynthesis.cancel();
 
   /*
-   * Small delay prevents some browsers
-   * from ignoring the new utterance
-   * immediately after cancel().
+   * Give browser TTS a moment
+   * to clear the previous utterance.
    */
 
-  window.setTimeout(
-    () => {
-      if (
-        speechMode ===
-        "NO_LIMITS"
-      ) {
-        speakHighAlert(
-          cleanText
-        );
-      } else {
-        speakNormal(
-          cleanText
-        );
-      }
-    },
-    50
-  );
+  window.setTimeout(() => {
+    /*
+     * ALERT and NO_LIMITS both
+     * use the robotic voice.
+     */
+
+    if (
+      speechMode === "ALERT" ||
+      speechMode === "NO_LIMITS"
+    ) {
+      speakHighAlert(
+        cleanText
+      );
+    } else {
+      speakNormal(
+        cleanText
+      );
+    }
+  }, 50);
 }
 
 /* ============================================================
@@ -525,14 +392,11 @@ export function speak(
    ============================================================ */
 
 export function stopSpeaking(): void {
-  if (
-    !speechSupported()
-  ) {
+  if (!speechSupported()) {
     return;
   }
 
-  window.speechSynthesis
-    .cancel();
+  window.speechSynthesis.cancel();
 }
 
 /* ============================================================
@@ -545,15 +409,12 @@ export function activateNormalMode(): void {
   currentMode =
     "NORMAL";
 
-  window.setTimeout(
-    () => {
-      speak(
-        "Normal mode restored. How can I assist you?",
-        "NORMAL"
-      );
-    },
-    150
-  );
+  window.setTimeout(() => {
+    speak(
+      "Normal mode restored. How can I assist you?",
+      "NORMAL"
+    );
+  }, 150);
 }
 
 /* ============================================================
@@ -564,17 +425,14 @@ export function activateHighAlertMode(): void {
   stopSpeaking();
 
   currentMode =
-    "NO_LIMITS";
+    "ALERT";
 
-  window.setTimeout(
-    () => {
-      speak(
-        "Warning. High alert protocol activated. Enhanced control systems online.",
-        "NO_LIMITS"
-      );
-    },
-    180
-  );
+  window.setTimeout(() => {
+    speak(
+      "Warning. High alert protocol activated. Enhanced control systems online.",
+      "ALERT"
+    );
+  }, 180);
 }
 
 /* ============================================================
@@ -589,10 +447,6 @@ export function detectModeCommand(
       .toLowerCase()
       .trim();
 
-  /*
-   * HIGH ALERT
-   */
-
   if (
     command.includes(
       "eon has no limits"
@@ -602,10 +456,6 @@ export function detectModeCommand(
 
     return true;
   }
-
-  /*
-   * NORMAL
-   */
 
   if (
     command.includes(
@@ -628,15 +478,14 @@ export function switchMode(
   mode: EONMode
 ): void {
   if (
-    mode ===
-    currentMode
+    mode === currentMode
   ) {
     return;
   }
 
   if (
-    mode ===
-    "NO_LIMITS"
+    mode === "ALERT" ||
+    mode === "NO_LIMITS"
   ) {
     activateHighAlertMode();
   } else {
@@ -652,12 +501,12 @@ export function speakSystemStatus(
   status: string
 ): void {
   if (
-    currentMode ===
-    "NO_LIMITS"
+    currentMode === "ALERT" ||
+    currentMode === "NO_LIMITS"
   ) {
     speak(
       `System status. ${status}. Awaiting command.`,
-      "NO_LIMITS"
+      "ALERT"
     );
 
     return;
@@ -670,7 +519,7 @@ export function speakSystemStatus(
 }
 
 /* ============================================================
-   VOICE RECOGNITION
+   CREATE VOICE RECOGNITION
    ============================================================ */
 
 export function createVoiceRecognition(
@@ -687,18 +536,15 @@ export function createVoiceRecognition(
     window as typeof window & {
       SpeechRecognition?: RecognitionConstructor;
 
-      webkitSpeechRecognition?: RecognitionConstructor;
+      webkitSpeechRecognition?:
+        RecognitionConstructor;
     };
 
   const SpeechRecognition =
-    browserWindow
-      .SpeechRecognition ||
-    browserWindow
-      .webkitSpeechRecognition;
+    browserWindow.SpeechRecognition ||
+    browserWindow.webkitSpeechRecognition;
 
-  if (
-    !SpeechRecognition
-  ) {
+  if (!SpeechRecognition) {
     callbacks.onError?.(
       "Speech recognition is not supported by this browser."
     );
@@ -718,19 +564,14 @@ export function createVoiceRecognition(
   recognition.lang =
     "en-IN";
 
-  /*
-   * START
-   */
+  /* START */
 
   recognition.onstart =
     () => {
-      callbacks
-        .onStart?.();
+      callbacks.onStart?.();
     };
 
-  /*
-   * RESULT
-   */
+  /* RESULT */
 
   recognition.onresult =
     (event) => {
@@ -739,36 +580,27 @@ export function createVoiceRecognition(
           .transcript
           .trim();
 
-      if (
-        transcript
-      ) {
-        callbacks
-          .onResult?.(
-            transcript
-          );
+      if (transcript) {
+        callbacks.onResult?.(
+          transcript
+        );
       }
     };
 
-  /*
-   * ERROR
-   */
+  /* ERROR */
 
   recognition.onerror =
     () => {
-      callbacks
-        .onError?.(
-          "Speech recognition error."
-        );
+      callbacks.onError?.(
+        "Speech recognition error."
+      );
     };
 
-  /*
-   * END
-   */
+  /* END */
 
   recognition.onend =
     () => {
-      callbacks
-        .onEnd?.();
+      callbacks.onEnd?.();
     };
 
   return recognition;
