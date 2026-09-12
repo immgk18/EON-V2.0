@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import EnergyCore from "@/components/EnergyCore";
 
 const tools = [
   { label: "CHAT", icon: "◈" },
@@ -16,20 +17,41 @@ const toolsRight = [
   { label: "AGENTS", icon: "▦" },
 ];
 
+type CoreState =
+  | "idle"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "alert";
+
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [mode, setMode] = useState<"NORMAL" | "ALERT">("NORMAL");
+
+  const [coreState, setCoreState] =
+    useState<CoreState>("idle");
+
   const [command, setCommand] = useState("");
   const [response, setResponse] = useState("");
 
+  /*
+   * =====================================================
+   * STARFIELD
+   * =====================================================
+   */
+
   useEffect(() => {
     const canvas = canvasRef.current;
+
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
+
     if (!ctx) return;
 
     let animationFrame = 0;
+
     let stars: {
       x: number;
       y: number;
@@ -53,7 +75,11 @@ export default function Home() {
         {
           length: Math.min(
             450,
-            Math.floor((window.innerWidth * window.innerHeight) / 4500)
+            Math.floor(
+              (window.innerWidth *
+                window.innerHeight) /
+                4500
+            )
           ),
         },
         () => ({
@@ -67,7 +93,11 @@ export default function Home() {
     };
 
     resize();
-    window.addEventListener("resize", resize);
+
+    window.addEventListener(
+      "resize",
+      resize
+    );
 
     const draw = (time: number) => {
       const w = window.innerWidth;
@@ -79,56 +109,170 @@ export default function Home() {
         const alpha =
           0.25 +
           0.55 *
-            ((Math.sin(star.phase + time * 0.001 * star.speed) + 1) / 2);
+            ((Math.sin(
+              star.phase +
+                time *
+                  0.001 *
+                  star.speed
+            ) +
+              1) /
+              2);
 
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, ${190 + Math.floor(Math.random() * 50)}, 70, ${alpha})`;
+
+        ctx.arc(
+          star.x,
+          star.y,
+          star.r,
+          0,
+          Math.PI * 2
+        );
+
+        ctx.fillStyle = `rgba(255, ${
+          190 +
+          Math.floor(Math.random() * 50)
+        }, 70, ${alpha})`;
+
         ctx.fill();
 
-        star.y += star.speed * 0.025;
+        star.y +=
+          star.speed * 0.025;
 
         if (star.y > h + 2) {
           star.y = -2;
-          star.x = Math.random() * w;
+          star.x =
+            Math.random() * w;
         }
       }
 
-      animationFrame = requestAnimationFrame(draw);
+      animationFrame =
+        requestAnimationFrame(draw);
     };
 
-    animationFrame = requestAnimationFrame(draw);
+    animationFrame =
+      requestAnimationFrame(draw);
 
     return () => {
-      cancelAnimationFrame(animationFrame);
-      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(
+        animationFrame
+      );
+
+      window.removeEventListener(
+        "resize",
+        resize
+      );
     };
   }, []);
 
+  /*
+   * =====================================================
+   * MODE CONTROL
+   * =====================================================
+   */
+
   const toggleMode = () => {
-    setMode((current) => (current === "NORMAL" ? "ALERT" : "NORMAL"));
+    setMode((current) => {
+      const next =
+        current === "NORMAL"
+          ? "ALERT"
+          : "NORMAL";
+
+      setCoreState(
+        next === "ALERT"
+          ? "alert"
+          : "idle"
+      );
+
+      return next;
+    });
   };
+
+  /*
+   * =====================================================
+   * COMMAND SYSTEM
+   * =====================================================
+   */
 
   const submitCommand = () => {
     if (!command.trim()) return;
 
-    setResponse(`COMMAND RECEIVED: ${command.trim()}`);
+    const currentCommand =
+      command.trim();
+
+    setCoreState("thinking");
+
+    setResponse(
+      `COMMAND RECEIVED: ${currentCommand}`
+    );
+
     setCommand("");
+
+    setTimeout(() => {
+      setCoreState("speaking");
+    }, 900);
+
+    setTimeout(() => {
+      setCoreState("idle");
+    }, 2200);
   };
 
+  /*
+   * =====================================================
+   * RESET
+   * =====================================================
+   */
+
+  const resetEON = () => {
+    setResponse("");
+    setCommand("");
+    setMode("NORMAL");
+    setCoreState("idle");
+  };
+
+  /*
+   * =====================================================
+   * UI
+   * =====================================================
+   */
+
   return (
-    <main className={`eon ${mode === "ALERT" ? "alert" : ""}`}>
-      <canvas ref={canvasRef} className="stars" />
+    <main
+      className={`eon ${
+        mode === "ALERT"
+          ? "alert"
+          : ""
+      }`}
+    >
+      {/* STARFIELD */}
+
+      <canvas
+        ref={canvasRef}
+        className="stars"
+      />
+
+      {/* ATMOSPHERIC SPACE GLOW */}
 
       <div className="spaceGlow" />
 
-      {/* TOP BAR */}
+      {/* =================================================
+          TOP BAR
+          ================================================= */}
+
       <header className="topBar">
         <div className="statusPanel">
           <span className="onlineDot" />
+
           <span>ONLINE</span>
-          <span className="separator">|</span>
-          <span>{mode === "NORMAL" ? "NORMAL MODE" : "HIGH ALERT"}</span>
+
+          <span className="separator">
+            |
+          </span>
+
+          <span>
+            {mode === "NORMAL"
+              ? "NORMAL MODE"
+              : "HIGH ALERT"}
+          </span>
         </div>
 
         <div className="brandPanel">
@@ -139,110 +283,181 @@ export default function Home() {
           <div className="brandLine" />
 
           <div className="brandSub">
-            INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;EXECUTION&nbsp;&nbsp; | &nbsp;&nbsp;
-            AUTONOMY&nbsp;&nbsp; | &nbsp;&nbsp;BEYOND LIMITS
+            INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;
+            EXECUTION&nbsp;&nbsp; | &nbsp;&nbsp;
+            AUTONOMY&nbsp;&nbsp; | &nbsp;&nbsp;
+            BEYOND LIMITS
           </div>
         </div>
       </header>
 
-      {/* LEFT TOOLS */}
-      <aside className="toolColumn leftTools">
+      {/* =================================================
+          LEFT TOOLS
+          ================================================= */}
+
+      <aside
+        className="toolColumn leftTools"
+      >
         {tools.map((tool) => (
-          <button className="toolButton" key={tool.label}>
-            <span className="toolIcon">{tool.icon}</span>
-            <span>{tool.label}</span>
+          <button
+            className="toolButton"
+            key={tool.label}
+            type="button"
+            onClick={() => {
+              setResponse(
+                `${tool.label} MODULE SELECTED`
+              );
+            }}
+          >
+            <span className="toolIcon">
+              {tool.icon}
+            </span>
+
+            <span>
+              {tool.label}
+            </span>
           </button>
         ))}
       </aside>
 
-      {/* RIGHT TOOLS */}
-      <aside className="toolColumn rightTools">
+      {/* =================================================
+          RIGHT TOOLS
+          ================================================= */}
+
+      <aside
+        className="toolColumn rightTools"
+      >
         {toolsRight.map((tool) => (
           <button
             className="toolButton"
             key={tool.label}
-            onClick={tool.label === "VOICE" ? () => setResponse("LISTENING...") : undefined}
+            type="button"
+            onClick={() => {
+              if (
+                tool.label ===
+                "VOICE"
+              ) {
+                setCoreState(
+                  "listening"
+                );
+
+                setResponse(
+                  "LISTENING..."
+                );
+
+                setTimeout(() => {
+                  setCoreState(
+                    "idle"
+                  );
+                }, 3000);
+
+                return;
+              }
+
+              setResponse(
+                `${tool.label} MODULE SELECTED`
+              );
+            }}
           >
-            <span className="toolIcon">{tool.icon}</span>
-            <span>{tool.label}</span>
+            <span className="toolIcon">
+              {tool.icon}
+            </span>
+
+            <span>
+              {tool.label}
+            </span>
           </button>
         ))}
       </aside>
 
-      {/* EON ENERGY CORE */}
+      {/* =================================================
+          LIVING EON CORE
+          ================================================= */}
+
       <section className="coreArea">
-        <div className="outerEnergy energyOne" />
-        <div className="outerEnergy energyTwo" />
-        <div className="outerEnergy energyThree" />
+        <EnergyCore
+          state={coreState}
+        />
 
-        <div className="energyRing ringOne" />
-        <div className="energyRing ringTwo" />
-        <div className="energyRing ringThree" />
-        <div className="energyRing ringFour" />
-
-        <div className="energyParticles">
-          {Array.from({ length: 32 }).map((_, index) => (
-            <span
-              key={index}
-              className="particle"
-              style={
-                {
-                  "--i": index,
-                  "--angle": `${index * 11.25}deg`,
-                } as React.CSSProperties
-              }
-            />
-          ))}
-        </div>
-
-        <div className="coreHole" />
-
-        {response && <div className="response">{response}</div>}
+        {response && (
+          <div className="response">
+            {response}
+          </div>
+        )}
       </section>
 
-      {/* COMMAND BAR */}
+      {/* =================================================
+          COMMAND AREA
+          ================================================= */}
+
       <section className="bottomArea">
         <form
           className="commandBar"
           onSubmit={(event) => {
             event.preventDefault();
+
             submitCommand();
           }}
         >
-          <span className="commandWave">▮▮▮</span>
+          <span className="commandWave">
+            ▮▮▮
+          </span>
 
           <input
             value={command}
-            onChange={(event) => setCommand(event.target.value)}
+            onChange={(event) =>
+              setCommand(
+                event.target.value
+              )
+            }
             placeholder="Type or speak a command..."
+            aria-label="EON command"
           />
 
-          <button type="submit" className="sendButton">
+          <button
+            type="submit"
+            className="sendButton"
+            aria-label="Send command"
+          >
             ➤
           </button>
         </form>
 
+        {/* =================================================
+            BOTTOM CONTROLS
+            ================================================= */}
+
         <div className="bottomControls">
-          <button className="controlButton" onClick={toggleMode}>
+          <button
+            className="controlButton"
+            type="button"
+            onClick={toggleMode}
+          >
             ⚡ &nbsp;
-            {mode === "NORMAL" ? "NO LIMITS" : "EON HAS LIMITS"}
+
+            {mode === "NORMAL"
+              ? "NO LIMITS"
+              : "EON HAS LIMITS"}
           </button>
 
           <button
             className="controlButton"
-            onClick={() => {
-              setResponse("");
-              setCommand("");
-              setMode("NORMAL");
-            }}
+            type="button"
+            onClick={resetEON}
           >
             ↻ &nbsp; RESET
           </button>
         </div>
 
+        {/* =================================================
+            FOOTER
+            ================================================= */}
+
         <div className="footer">
-          INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;EXECUTION&nbsp;&nbsp; | &nbsp;&nbsp;
-          AUTONOMY&nbsp;&nbsp; | &nbsp;&nbsp;BEYOND LIMITS
+          INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;
+          EXECUTION&nbsp;&nbsp; | &nbsp;&nbsp;
+          AUTONOMY&nbsp;&nbsp; | &nbsp;&nbsp;
+          BEYOND LIMITS
         </div>
       </section>
     </main>
