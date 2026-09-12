@@ -1,25 +1,25 @@
 import os
 
-from openai import OpenAI
+from google import genai
 
 
 MODEL = os.getenv(
     "EON_AI_MODEL",
-    "gpt-5.6-luna",
+    "gemini-3.8-flash",
 )
 
 
-def get_client() -> OpenAI:
+def get_client() -> genai.Client:
     api_key = os.getenv(
-        "OPENAI_API_KEY"
+        "GEMINI_API_KEY"
     )
 
     if not api_key:
         raise RuntimeError(
-            "OPENAI_API_KEY is not configured."
+            "GEMINI_API_KEY is not configured."
         )
 
-    return OpenAI(
+    return genai.Client(
         api_key=api_key
     )
 
@@ -29,26 +29,17 @@ def ask_eon(
 ) -> str:
     client = get_client()
 
-    response = client.responses.create(
+    response = client.models.generate_content(
         model=MODEL,
-        instructions=(
-            "You are EON, the Enhanced Operations Network. "
-            "You are a helpful AI operations assistant. "
-            "Answer clearly, accurately, and concisely. "
-            "For engineering or scientific tasks, state "
-            "important assumptions and verification requirements. "
-            "Do not claim real-world certainty when verification "
-            "is required."
-        ),
-        input=message,
+        contents=message,
     )
 
-    output = response.output_text.strip()
+    output = (response.text or "").strip()
 
     if not output:
         return (
             "EON received the command but "
-            "the AI returned an empty response."
+            "Gemini returned an empty response."
         )
 
     return output
