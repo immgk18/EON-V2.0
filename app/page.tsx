@@ -1,20 +1,55 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
 import EnergyCore from "@/components/EnergyCore";
 
+import {
+  createVoiceRecognition,
+  speak,
+  stopSpeaking,
+} from "@/lib/voice";
+
 const tools = [
-  { label: "CHAT", icon: "◈" },
-  { label: "VISION", icon: "◉" },
-  { label: "MEMORY", icon: "◇" },
-  { label: "COMMANDS", icon: "⌁" },
+  {
+    label: "CHAT",
+    icon: "◈",
+  },
+  {
+    label: "VISION",
+    icon: "◉",
+  },
+  {
+    label: "MEMORY",
+    icon: "◇",
+  },
+  {
+    label: "COMMANDS",
+    icon: "⌁",
+  },
 ];
 
 const toolsRight = [
-  { label: "VOICE", icon: "◌" },
-  { label: "SETTINGS", icon: "⚙" },
-  { label: "BROWSE", icon: "◎" },
-  { label: "AGENTS", icon: "▦" },
+  {
+    label: "VOICE",
+    icon: "◌",
+  },
+  {
+    label: "SETTINGS",
+    icon: "⚙",
+  },
+  {
+    label: "BROWSE",
+    icon: "◎",
+  },
+  {
+    label: "AGENTS",
+    icon: "▦",
+  },
 ];
 
 type CoreState =
@@ -25,10 +60,20 @@ type CoreState =
   | "alert";
 
 export default function Home() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef =
+    useRef<HTMLCanvasElement>(null);
+
+  const recognitionRef =
+    useRef<
+      ReturnType<
+        typeof createVoiceRecognition
+      >
+    >(null);
 
   const [mode, setMode] =
-    useState<"NORMAL" | "ALERT">("NORMAL");
+    useState<"NORMAL" | "ALERT">(
+      "NORMAL"
+    );
 
   const [coreState, setCoreState] =
     useState<CoreState>("idle");
@@ -42,18 +87,24 @@ export default function Home() {
   const [alertBurst, setAlertBurst] =
     useState(false);
 
-  /* =====================================================
+  /* =========================================================
      STARFIELD
-     ===================================================== */
+     ========================================================= */
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas =
+      canvasRef.current;
 
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
 
-    const ctx = canvas.getContext("2d");
+    const ctx =
+      canvas.getContext("2d");
 
-    if (!ctx) return;
+    if (!ctx) {
+      return;
+    }
 
     let animationFrame = 0;
 
@@ -67,7 +118,8 @@ export default function Home() {
 
     const resize = () => {
       const dpr =
-        window.devicePixelRatio || 1;
+        window.devicePixelRatio ||
+        1;
 
       canvas.width =
         window.innerWidth * dpr;
@@ -90,42 +142,43 @@ export default function Home() {
         0
       );
 
-      stars = Array.from(
-        {
-          length: Math.min(
-            450,
-            Math.floor(
-              (window.innerWidth *
-                window.innerHeight) /
-                4500
-            )
-          ),
-        },
-        () => ({
-          x:
-            Math.random() *
-            window.innerWidth,
+      stars =
+        Array.from(
+          {
+            length: Math.min(
+              450,
+              Math.floor(
+                (window.innerWidth *
+                  window.innerHeight) /
+                  4500
+              )
+            ),
+          },
+          () => ({
+            x:
+              Math.random() *
+              window.innerWidth,
 
-          y:
-            Math.random() *
-            window.innerHeight,
+            y:
+              Math.random() *
+              window.innerHeight,
 
-          r:
-            Math.random() *
-              1.35 +
-            0.15,
+            r:
+              Math.random() *
+                1.35 +
+              0.15,
 
-          speed:
-            Math.random() *
-              0.25 +
-            0.03,
+            speed:
+              Math.random() *
+                0.25 +
+              0.03,
 
-          phase:
-            Math.random() *
-            Math.PI *
-            2,
-        })
-      );
+            phase:
+              Math.random() *
+              Math.PI *
+              2,
+          })
+        );
     };
 
     resize();
@@ -135,7 +188,9 @@ export default function Home() {
       resize
     );
 
-    const draw = (time: number) => {
+    const draw = (
+      time: number
+    ) => {
       const w =
         window.innerWidth;
 
@@ -219,9 +274,9 @@ export default function Home() {
     };
   }, []);
 
-  /* =====================================================
-     HIGH ALERT SOUND
-     ===================================================== */
+  /* =========================================================
+     ALERT SOUND
+     ========================================================= */
 
   const playAlertSound = () => {
     try {
@@ -265,12 +320,11 @@ export default function Home() {
         audioContext.destination
       );
 
-      /* LOW RISING TONE */
-
       const low =
         audioContext.createOscillator();
 
-      low.type = "sawtooth";
+      low.type =
+        "sawtooth";
 
       low.frequency.setValueAtTime(
         80,
@@ -290,12 +344,11 @@ export default function Home() {
         now + 0.85
       );
 
-      /* HIGH ENERGY TONE */
-
       const high =
         audioContext.createOscillator();
 
-      high.type = "triangle";
+      high.type =
+        "triangle";
 
       high.frequency.setValueAtTime(
         420,
@@ -317,12 +370,11 @@ export default function Home() {
         now + 0.68
       );
 
-      /* FINAL ALERT PULSE */
-
       const pulse =
         audioContext.createOscillator();
 
-      pulse.type = "square";
+      pulse.type =
+        "square";
 
       pulse.frequency.setValueAtTime(
         110,
@@ -364,59 +416,195 @@ export default function Home() {
     }
   };
 
-  /* =====================================================
-     MODE CONTROL
-     ===================================================== */
+  /* =========================================================
+     VOICE SYSTEM
+     ========================================================= */
 
-  const toggleMode = () => {
-    setMode((current) => {
-      const next =
-        current === "NORMAL"
-          ? "ALERT"
-          : "NORMAL";
+  const startVoice = () => {
+    if (
+      recognitionRef.current
+    ) {
+      recognitionRef.current.stop();
 
-      setAlertBurst(true);
+      recognitionRef.current =
+        null;
 
-      if (next === "ALERT") {
-        setCoreState("alert");
+      setCoreState("idle");
 
-        setResponse(
-          "HIGH ALERT MODE ACTIVATED"
-        );
+      setResponse(
+        "VOICE LISTENING STOPPED"
+      );
 
-        playAlertSound();
-      } else {
-        setCoreState("idle");
-
-        setResponse(
-          "NORMAL MODE RESTORED"
-        );
-      }
-
-      setTimeout(() => {
-        setAlertBurst(false);
-      }, 1000);
-
-      return next;
-    });
-  };
-
-  /* =====================================================
-     COMMAND SYSTEM
-     ===================================================== */
-
-  const submitCommand = () => {
-    if (!command.trim()) {
       return;
     }
+
+    stopSpeaking();
+
+    const recognition =
+      createVoiceRecognition({
+        onStart: () => {
+          setCoreState(
+            "listening"
+          );
+
+          setResponse(
+            "LISTENING..."
+          );
+        },
+
+        onResult: (
+          text
+        ) => {
+          setCommand(text);
+
+          setResponse(
+            `VOICE COMMAND: ${text.toUpperCase()}`
+          );
+
+          setCoreState(
+            "thinking"
+          );
+
+          setTimeout(() => {
+            setCoreState(
+              "speaking"
+            );
+
+            const responseText =
+              `Command received: ${text}`;
+
+            setResponse(
+              responseText.toUpperCase()
+            );
+
+            speak(
+              responseText
+            );
+          }, 700);
+
+          setTimeout(() => {
+            setCoreState(
+              "idle"
+            );
+          }, 3200);
+        },
+
+        onEnd: () => {
+          recognitionRef.current =
+            null;
+        },
+
+        onError: (
+          message
+        ) => {
+          setCoreState(
+            "idle"
+          );
+
+          setResponse(
+            `VOICE ERROR: ${message.toUpperCase()}`
+          );
+
+          recognitionRef.current =
+            null;
+        },
+      });
+
+    if (!recognition) {
+      return;
+    }
+
+    recognitionRef.current =
+      recognition;
+
+    try {
+      recognition.start();
+    } catch {
+      recognitionRef.current =
+        null;
+
+      setCoreState(
+        "idle"
+      );
+
+      setResponse(
+        "VOICE SYSTEM COULD NOT START"
+      );
+    }
+  };
+
+  /* =========================================================
+     MODE SWITCH
+     ========================================================= */
+
+  const toggleMode = () => {
+    setMode(
+      (current) => {
+        const next =
+          current ===
+          "NORMAL"
+            ? "ALERT"
+            : "NORMAL";
+
+        setAlertBurst(
+          true
+        );
+
+        if (
+          next === "ALERT"
+        ) {
+          setCoreState(
+            "alert"
+          );
+
+          setResponse(
+            "HIGH ALERT MODE ACTIVATED"
+          );
+
+          playAlertSound();
+        } else {
+          setCoreState(
+            "idle"
+          );
+
+          setResponse(
+            "NORMAL MODE RESTORED"
+          );
+        }
+
+        setTimeout(() => {
+          setAlertBurst(
+            false
+          );
+        }, 1000);
+
+        return next;
+      }
+    );
+  };
+
+  /* =========================================================
+     TEXT COMMAND SYSTEM
+     ========================================================= */
+
+  const submitCommand = () => {
+    if (
+      !command.trim()
+    ) {
+      return;
+    }
+
+    stopSpeaking();
 
     const currentCommand =
       command.trim();
 
-    setCoreState("thinking");
+    setCoreState(
+      "thinking"
+    );
 
     setResponse(
-      `COMMAND RECEIVED: ${currentCommand}`
+      `COMMAND RECEIVED: ${currentCommand.toUpperCase()}`
     );
 
     setCommand("");
@@ -428,25 +616,48 @@ export default function Home() {
     }, 900);
 
     setTimeout(() => {
-      setCoreState("idle");
+      setCoreState(
+        "idle"
+      );
     }, 2200);
   };
 
-  /* =====================================================
-     RESET
-     ===================================================== */
+  /* =========================================================
+     RESET EON
+     ========================================================= */
 
   const resetEON = () => {
+    if (
+      recognitionRef.current
+    ) {
+      recognitionRef.current.stop();
+
+      recognitionRef.current =
+        null;
+    }
+
+    stopSpeaking();
+
     setResponse("");
+
     setCommand("");
-    setMode("NORMAL");
-    setCoreState("idle");
-    setAlertBurst(false);
+
+    setMode(
+      "NORMAL"
+    );
+
+    setCoreState(
+      "idle"
+    );
+
+    setAlertBurst(
+      false
+    );
   };
 
-  /* =====================================================
+  /* =========================================================
      UI
-     ===================================================== */
+     ========================================================= */
 
   return (
     <main
@@ -456,20 +667,16 @@ export default function Home() {
           : ""
       }`}
     >
-      {/* STARFIELD */}
-
       <canvas
         ref={canvasRef}
         className="stars"
       />
 
-      {/* SPACE GLOW */}
-
       <div className="spaceGlow" />
 
-      {/* =================================================
-          TOP BAR
-          ================================================= */}
+      {/* =====================================================
+          HEADER
+          ===================================================== */}
 
       <header className="topBar">
         <div className="statusPanel">
@@ -484,7 +691,8 @@ export default function Home() {
           </span>
 
           <span>
-            {mode === "NORMAL"
+            {mode ===
+            "NORMAL"
               ? "NORMAL MODE"
               : "HIGH ALERT"}
           </span>
@@ -506,98 +714,96 @@ export default function Home() {
         </div>
       </header>
 
-      {/* =================================================
+      {/* =====================================================
           LEFT TOOLS
-          ================================================= */}
+          ===================================================== */}
 
       <aside
         className="toolColumn leftTools"
       >
-        {tools.map((tool) => (
-          <button
-            className="toolButton"
-            key={tool.label}
-            type="button"
-            onClick={() => {
-              setResponse(
-                `${tool.label} MODULE SELECTED`
-              );
-            }}
-          >
-            <span className="toolIcon">
-              {tool.icon}
-            </span>
+        {tools.map(
+          (tool) => (
+            <button
+              className="toolButton"
+              key={
+                tool.label
+              }
+              type="button"
+              onClick={() => {
+                setResponse(
+                  `${tool.label} MODULE SELECTED`
+                );
+              }}
+            >
+              <span className="toolIcon">
+                {tool.icon}
+              </span>
 
-            <span>
-              {tool.label}
-            </span>
-          </button>
-        ))}
+              <span>
+                {tool.label}
+              </span>
+            </button>
+          )
+        )}
       </aside>
 
-      {/* =================================================
+      {/* =====================================================
           RIGHT TOOLS
-          ================================================= */}
+          ===================================================== */}
 
       <aside
         className="toolColumn rightTools"
       >
-        {toolsRight.map((tool) => (
-          <button
-            className="toolButton"
-            key={tool.label}
-            type="button"
-            onClick={() => {
-              if (
-                tool.label ===
-                "VOICE"
-              ) {
-                setCoreState(
-                  "listening"
-                );
+        {toolsRight.map(
+          (tool) => (
+            <button
+              className="toolButton"
+              key={
+                tool.label
+              }
+              type="button"
+              onClick={() => {
+                if (
+                  tool.label ===
+                  "VOICE"
+                ) {
+                  startVoice();
+                  return;
+                }
 
                 setResponse(
-                  "LISTENING..."
+                  `${tool.label} MODULE SELECTED`
                 );
+              }}
+            >
+              <span className="toolIcon">
+                {tool.icon}
+              </span>
 
-                setTimeout(() => {
-                  setCoreState(
-                    "idle"
-                  );
-                }, 3000);
-
-                return;
-              }
-
-              setResponse(
-                `${tool.label} MODULE SELECTED`
-              );
-            }}
-          >
-            <span className="toolIcon">
-              {tool.icon}
-            </span>
-
-            <span>
-              {tool.label}
-            </span>
-          </button>
-        ))}
+              <span>
+                {tool.label}
+              </span>
+            </button>
+          )
+        )}
       </aside>
 
-      {/* =================================================
-          LIVING EON CORE
-          ================================================= */}
+      {/* =====================================================
+          ENERGY CORE
+          ===================================================== */}
 
       <section className="coreArea">
         <EnergyCore
-          state={coreState}
+          state={
+            coreState
+          }
         />
 
         {alertBurst && (
           <div
             className={`alertBurst ${
-              mode === "ALERT"
+              mode ===
+              "ALERT"
                 ? "enteringAlert"
                 : "leavingAlert"
             }`}
@@ -611,14 +817,16 @@ export default function Home() {
         )}
       </section>
 
-      {/* =================================================
+      {/* =====================================================
           COMMAND AREA
-          ================================================= */}
+          ===================================================== */}
 
       <section className="bottomArea">
         <form
           className="commandBar"
-          onSubmit={(event) => {
+          onSubmit={(
+            event
+          ) => {
             event.preventDefault();
 
             submitCommand();
@@ -629,10 +837,15 @@ export default function Home() {
           </span>
 
           <input
-            value={command}
-            onChange={(event) =>
+            value={
+              command
+            }
+            onChange={(
+              event
+            ) =>
               setCommand(
-                event.target.value
+                event.target
+                  .value
               )
             }
             placeholder="Type or speak a command..."
@@ -648,7 +861,9 @@ export default function Home() {
           </button>
         </form>
 
-        {/* BOTTOM CONTROLS */}
+        {/* ===================================================
+            BOTTOM CONTROLS
+            =================================================== */}
 
         <div className="bottomControls">
           <button
@@ -660,7 +875,8 @@ export default function Home() {
           >
             ⚡ &nbsp;
 
-            {mode === "NORMAL"
+            {mode ===
+            "NORMAL"
               ? "NO LIMITS"
               : "EON HAS LIMITS"}
           </button>
@@ -676,7 +892,9 @@ export default function Home() {
           </button>
         </div>
 
-        {/* FOOTER */}
+        {/* ===================================================
+            FOOTER
+            =================================================== */}
 
         <div className="footer">
           INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;
