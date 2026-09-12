@@ -1,8 +1,8 @@
-from os import getenv
-
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+from ai import ask_eon
 
 
 app = FastAPI(
@@ -86,21 +86,26 @@ async def chat(
             model="eon-core",
         )
 
-    # --------------------------------------------------------
-    # Temporary brain response
-    # --------------------------------------------------------
-    #
-    # This proves the complete frontend → backend connection
-    # before we attach the external AI provider.
-    #
+    try:
+        response = ask_eon(
+            message
+        )
 
-    response = (
-        "EON AI BRAIN ONLINE. "
-        f"Command received: {message}"
-    )
+        return ChatResponse(
+            response=response,
+            status="success",
+            model="eon-ai",
+        )
 
-    return ChatResponse(
-        response=response,
-        status="success",
-        model="eon-core",
-    )
+    except Exception as error:
+        print(
+            f"EON AI ERROR: {error}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "EON AI Brain could not "
+                "process the request."
+            ),
+        )
