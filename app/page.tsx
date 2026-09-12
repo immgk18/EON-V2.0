@@ -14,6 +14,12 @@ import {
   stopSpeaking,
 } from "@/lib/voice";
 
+import {
+  processCommand,
+  getHelpMessage,
+  type CommandResult,
+} from "@/lib/commandEngine";
+
 const tools = [
   {
     label: "CHAT",
@@ -59,11 +65,11 @@ type CoreState =
   | "speaking"
   | "alert";
 
+type Mode = "NORMAL" | "ALERT";
+
 export default function Home() {
   const canvasRef =
-    useRef<HTMLCanvasElement>(
-      null
-    );
+    useRef<HTMLCanvasElement>(null);
 
   const recognitionRef =
     useRef<
@@ -72,15 +78,21 @@ export default function Home() {
       >
     >(null);
 
+  const responseTimerRef =
+    useRef<ReturnType<
+      typeof setTimeout
+    > | null>(null);
+
+  const idleTimerRef =
+    useRef<ReturnType<
+      typeof setTimeout
+    > | null>(null);
+
   const [mode, setMode] =
-    useState<
-      "NORMAL" | "ALERT"
-    >("NORMAL");
+    useState<Mode>("NORMAL");
 
   const [coreState, setCoreState] =
-    useState<CoreState>(
-      "idle"
-    );
+    useState<CoreState>("idle");
 
   const [command, setCommand] =
     useState("");
@@ -91,9 +103,11 @@ export default function Home() {
   const [alertBurst, setAlertBurst] =
     useState(false);
 
-  /* =========================================================
-     STARFIELD
-     ========================================================= */
+  /*
+   * =========================================================
+   * STARFIELD
+   * =========================================================
+   */
 
   useEffect(() => {
     const canvas =
@@ -104,9 +118,7 @@ export default function Home() {
     }
 
     const ctx =
-      canvas.getContext(
-        "2d"
-      );
+      canvas.getContext("2d");
 
     if (!ctx) {
       return;
@@ -124,16 +136,13 @@ export default function Home() {
 
     const resize = () => {
       const dpr =
-        window.devicePixelRatio ||
-        1;
+        window.devicePixelRatio || 1;
 
       canvas.width =
-        window.innerWidth *
-        dpr;
+        window.innerWidth * dpr;
 
       canvas.height =
-        window.innerHeight *
-        dpr;
+        window.innerHeight * dpr;
 
       canvas.style.width =
         `${window.innerWidth}px`;
@@ -153,15 +162,14 @@ export default function Home() {
       stars =
         Array.from(
           {
-            length:
-              Math.min(
-                450,
-                Math.floor(
-                  (window.innerWidth *
-                    window.innerHeight) /
-                    4500
-                )
-              ),
+            length: Math.min(
+              450,
+              Math.floor(
+                (window.innerWidth *
+                  window.innerHeight) /
+                  4500
+              )
+            ),
           },
           () => ({
             x:
@@ -288,9 +296,45 @@ export default function Home() {
     };
   }, []);
 
-  /* =========================================================
-     ALERT SOUND
-     ========================================================= */
+  /*
+   * =========================================================
+   * CLEANUP
+   * =========================================================
+   */
+
+  useEffect(() => {
+    return () => {
+      if (
+        responseTimerRef.current
+      ) {
+        clearTimeout(
+          responseTimerRef.current
+        );
+      }
+
+      if (
+        idleTimerRef.current
+      ) {
+        clearTimeout(
+          idleTimerRef.current
+        );
+      }
+
+      if (
+        recognitionRef.current
+      ) {
+        recognitionRef.current.stop();
+      }
+
+      stopSpeaking();
+    };
+  }, []);
+
+  /*
+   * =========================================================
+   * ALERT SOUND
+   * =========================================================
+   */
 
   const playAlertSound =
     () => {
@@ -299,7 +343,8 @@ export default function Home() {
           window.AudioContext ||
           (
             window as typeof window & {
-              webkitAudioContext?: typeof AudioContext;
+              webkitAudioContext?:
+                typeof AudioContext;
             }
           ).webkitAudioContext;
 
@@ -437,9 +482,371 @@ export default function Home() {
       }
     };
 
-  /* =========================================================
-     VOICE
-     ========================================================= */
+  /*
+   * =========================================================
+   * MODE CONTROL
+   * =========================================================
+   */
+
+  const activateAlertMode =
+    () => {
+      stopSpeaking();
+
+      setMode("ALERT");
+
+      setAlertBurst(true);
+
+      setCoreState("alert");
+
+      setResponse(
+        "HIGH ALERT MODE ACTIVATED"
+      );
+
+      playAlertSound();
+
+      setTimeout(() => {
+        speak(
+          "Warning. High alert mode activated.",
+          "ALERT"
+        );
+      }, 250);
+
+      setTimeout(() => {
+        setAlertBurst(false);
+      }, 1000);
+    };
+
+  const activateNormalMode =
+    () => {
+      stopSpeaking();
+
+      setMode("NORMAL");
+
+      setAlertBurst(true);
+
+      setCoreState("idle");
+
+      setResponse(
+        "NORMAL MODE RESTORED"
+      );
+
+      setTimeout(() => {
+        speak(
+          "Normal mode restored. How can I assist you?",
+          "NORMAL"
+        );
+      }, 250);
+
+      setTimeout(() => {
+        setAlertBurst(false);
+      }, 1000);
+    };
+
+  /*
+   * =========================================================
+   * RESET
+   * =========================================================
+   */
+
+  const resetEON =
+    () => {
+      if (
+        recognitionRef.current
+      ) {
+        recognitionRef.current.stop();
+
+        recognitionRef.current =
+          null;
+      }
+
+      stopSpeaking();
+
+      if (
+        responseTimerRef.current
+      ) {
+        clearTimeout(
+          responseTimerRef.current
+        );
+      }
+
+      if (
+        idleTimerRef.current
+      ) {
+        clearTimeout(
+          idleTimerRef.current
+        );
+      }
+
+      setResponse("");
+
+      setCommand("");
+
+      setMode("NORMAL");
+
+      setCoreState("idle");
+
+      setAlertBurst(false);
+    };
+
+  /*
+   * =========================================================
+   * COMMAND RESPONSE
+   * =========================================================
+   */
+
+  const executeCommand =
+    (
+      result: CommandResult
+    ) => {
+      switch (
+        result.intent
+      ) {
+        case "MODE_ALERT":
+          activateAlertMode();
+          return;
+
+        case "MODE_NORMAL":
+          activateNormalMode();
+          return;
+
+        case "SYSTEM_STATUS": {
+          const status =
+            mode === "ALERT"
+              ? "System online. High alert mode active. Voice systems operational. Command engine operational."
+              : "System online. Normal mode active. Voice systems operational. Command engine operational.";
+
+          setCoreState(
+            "speaking"
+          );
+
+          setResponse(
+            status.toUpperCase()
+          );
+
+          speak(
+            status,
+            mode
+          );
+
+          if (
+            idleTimerRef.current
+          ) {
+            clearTimeout(
+              idleTimerRef.current
+            );
+          }
+
+          idleTimerRef.current =
+            setTimeout(() => {
+              setCoreState(
+                "idle"
+              );
+            }, 4200);
+
+          return;
+        }
+
+        case "CURRENT_MODE": {
+          const currentModeText =
+            mode === "ALERT"
+              ? "I am currently operating in high alert mode."
+              : "I am currently operating in normal mode.";
+
+          setCoreState(
+            "speaking"
+          );
+
+          setResponse(
+            currentModeText.toUpperCase()
+          );
+
+          speak(
+            currentModeText,
+            mode
+          );
+
+          if (
+            idleTimerRef.current
+          ) {
+            clearTimeout(
+              idleTimerRef.current
+            );
+          }
+
+          idleTimerRef.current =
+            setTimeout(() => {
+              setCoreState(
+                "idle"
+              );
+            }, 4200);
+
+          return;
+        }
+
+        case "RESET":
+          resetEON();
+
+          setResponse(
+            "EON SYSTEM RESET COMPLETE"
+          );
+
+          speak(
+            "EON system reset complete.",
+            "NORMAL"
+          );
+
+          return;
+
+        case "HELP": {
+          const help =
+            getHelpMessage();
+
+          setCoreState(
+            "speaking"
+          );
+
+          setResponse(
+            help.toUpperCase()
+          );
+
+          speak(
+            help,
+            mode
+          );
+
+          if (
+            idleTimerRef.current
+          ) {
+            clearTimeout(
+              idleTimerRef.current
+            );
+          }
+
+          idleTimerRef.current =
+            setTimeout(() => {
+              setCoreState(
+                "idle"
+              );
+            }, 6500);
+
+          return;
+        }
+
+        case "STOP":
+          stopSpeaking();
+
+          setCoreState(
+            "idle"
+          );
+
+          setResponse(
+            "SPEECH OUTPUT STOPPED"
+          );
+
+          return;
+
+        case "GENERAL": {
+          /*
+           * ==================================================
+           * FUTURE AI BRAIN
+           * ==================================================
+           *
+           * This is the gateway for the future LLM backend.
+           */
+
+          const responseText =
+            mode === "ALERT"
+              ? `Command received. ${result.original}. AI reasoning module is ready for connection.`
+              : `Command received. ${result.original}. AI reasoning module is ready for connection.`;
+
+          setCoreState(
+            "speaking"
+          );
+
+          setResponse(
+            responseText.toUpperCase()
+          );
+
+          speak(
+            responseText,
+            mode
+          );
+
+          if (
+            idleTimerRef.current
+          ) {
+            clearTimeout(
+              idleTimerRef.current
+            );
+          }
+
+          idleTimerRef.current =
+            setTimeout(() => {
+              setCoreState(
+                "idle"
+              );
+            }, 5000);
+
+          return;
+        }
+      }
+    };
+
+  /*
+   * =========================================================
+   * COMMAND PIPELINE
+   * =========================================================
+   */
+
+  const runCommand =
+    (
+      input: string
+    ) => {
+      const trimmed =
+        input.trim();
+
+      if (!trimmed) {
+        return;
+      }
+
+      stopSpeaking();
+
+      if (
+        responseTimerRef.current
+      ) {
+        clearTimeout(
+          responseTimerRef.current
+        );
+      }
+
+      setCoreState(
+        "thinking"
+      );
+
+      const result =
+        processCommand(
+          trimmed
+        );
+
+      setResponse(
+        `ANALYZING COMMAND: ${trimmed.toUpperCase()}`
+      );
+
+      setCommand("");
+
+      responseTimerRef.current =
+        setTimeout(() => {
+          executeCommand(
+            result
+          );
+        }, 700);
+    };
+
+  /*
+   * =========================================================
+   * VOICE
+   * =========================================================
+   */
 
   const startVoice =
     () => {
@@ -490,41 +897,8 @@ export default function Home() {
                   `VOICE COMMAND: ${text.toUpperCase()}`
                 );
 
-                setCoreState(
-                  "thinking"
-                );
-
-                setTimeout(
-                  () => {
-                    setCoreState(
-                      "speaking"
-                    );
-
-                    const responseText =
-                      mode ===
-                      "ALERT"
-                        ? `Warning. Command received. ${text}.`
-                        : `Command received. ${text}.`;
-
-                    setResponse(
-                      responseText.toUpperCase()
-                    );
-
-                    speak(
-                      responseText,
-                      mode
-                    );
-                  },
-                  700
-                );
-
-                setTimeout(
-                  () => {
-                    setCoreState(
-                      "idle"
-                    );
-                  },
-                  4200
+                runCommand(
+                  text
                 );
               },
 
@@ -552,9 +926,7 @@ export default function Home() {
           }
         );
 
-      if (
-        !recognition
-      ) {
+      if (!recognition) {
         return;
       }
 
@@ -577,186 +949,29 @@ export default function Home() {
       }
     };
 
-  /* =========================================================
-     MODE SWITCH
-     ========================================================= */
-
-  const toggleMode =
-    () => {
-      setMode(
-        (current) => {
-          const next =
-            current ===
-            "NORMAL"
-              ? "ALERT"
-              : "NORMAL";
-
-          setAlertBurst(
-            true
-          );
-
-          stopSpeaking();
-
-          if (
-            next === "ALERT"
-          ) {
-            setCoreState(
-              "alert"
-            );
-
-            setResponse(
-              "HIGH ALERT MODE ACTIVATED"
-            );
-
-            playAlertSound();
-
-            setTimeout(
-              () => {
-                speak(
-                  "Warning. High alert mode activated.",
-                  "ALERT"
-                );
-              },
-              250
-            );
-          } else {
-            setCoreState(
-              "idle"
-            );
-
-            setResponse(
-              "NORMAL MODE RESTORED"
-            );
-
-            setTimeout(
-              () => {
-                speak(
-                  "Normal mode restored. How can I assist you?",
-                  "NORMAL"
-                );
-              },
-              250
-            );
-          }
-
-          setTimeout(
-            () => {
-              setAlertBurst(
-                false
-              );
-            },
-            1000
-          );
-
-          return next;
-        }
-      );
-    };
-
-  /* =========================================================
-     TEXT COMMAND
-     ========================================================= */
+  /*
+   * =========================================================
+   * TEXT COMMAND
+   * =========================================================
+   */
 
   const submitCommand =
     () => {
-      if (
-        !command.trim()
-      ) {
-        return;
-      }
-
-      stopSpeaking();
-
-      const currentCommand =
-        command.trim();
-
-      setCoreState(
-        "thinking"
-      );
-
-      setResponse(
-        `COMMAND RECEIVED: ${currentCommand.toUpperCase()}`
-      );
-
-      setCommand("");
-
-      setTimeout(
-        () => {
-          setCoreState(
-            "speaking"
-          );
-
-          const responseText =
-            mode ===
-            "ALERT"
-              ? `Warning. Command received. ${currentCommand}.`
-              : `Command received. ${currentCommand}.`;
-
-          setResponse(
-            responseText.toUpperCase()
-          );
-
-          speak(
-            responseText,
-            mode
-          );
-        },
-        900
-      );
-
-      setTimeout(
-        () => {
-          setCoreState(
-            "idle"
-          );
-        },
-        4200
+      runCommand(
+        command
       );
     };
 
-  /* =========================================================
-     RESET
-     ========================================================= */
-
-  const resetEON =
-    () => {
-      if (
-        recognitionRef.current
-      ) {
-        recognitionRef.current.stop();
-
-        recognitionRef.current =
-          null;
-      }
-
-      stopSpeaking();
-
-      setResponse("");
-
-      setCommand("");
-
-      setMode(
-        "NORMAL"
-      );
-
-      setCoreState(
-        "idle"
-      );
-
-      setAlertBurst(
-        false
-      );
-    };
-
-  /* =========================================================
-     UI
-     ========================================================= */
+  /*
+   * =========================================================
+   * UI
+   * =========================================================
+   */
 
   return (
     <main
       className={`eon ${
-        mode ===
-        "ALERT"
+        mode === "ALERT"
           ? "alert"
           : ""
       }`}
@@ -783,8 +998,7 @@ export default function Home() {
           </span>
 
           <span>
-            {mode ===
-            "NORMAL"
+            {mode === "NORMAL"
               ? "NORMAL MODE"
               : "HIGH ALERT"}
           </span>
@@ -892,8 +1106,7 @@ export default function Home() {
         {alertBurst && (
           <div
             className={`alertBurst ${
-              mode ===
-              "ALERT"
+              mode === "ALERT"
                 ? "enteringAlert"
                 : "leavingAlert"
             }`}
@@ -954,13 +1167,14 @@ export default function Home() {
             className="controlButton"
             type="button"
             onClick={
-              toggleMode
+              mode === "NORMAL"
+                ? activateAlertMode
+                : activateNormalMode
             }
           >
             ⚡ &nbsp;
 
-            {mode ===
-            "NORMAL"
+            {mode === "NORMAL"
               ? "NO LIMITS"
               : "EON HAS LIMITS"}
           </button>
