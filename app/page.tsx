@@ -35,11 +35,9 @@ export default function Home() {
   const [command, setCommand] = useState("");
   const [response, setResponse] = useState("");
 
-  /*
-   * =====================================================
-   * STARFIELD
-   * =====================================================
-   */
+  /* =====================================================
+     STARFIELD
+     ===================================================== */
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -63,13 +61,26 @@ export default function Home() {
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
+      canvas.width =
+        window.innerWidth * dpr;
 
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
+      canvas.height =
+        window.innerHeight * dpr;
 
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.style.width =
+        `${window.innerWidth}px`;
+
+      canvas.style.height =
+        `${window.innerHeight}px`;
+
+      ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+      );
 
       stars = Array.from(
         {
@@ -83,11 +94,28 @@ export default function Home() {
           ),
         },
         () => ({
-          x: Math.random() * window.innerWidth,
-          y: Math.random() * window.innerHeight,
-          r: Math.random() * 1.35 + 0.15,
-          speed: Math.random() * 0.25 + 0.03,
-          phase: Math.random() * Math.PI * 2,
+          x:
+            Math.random() *
+            window.innerWidth,
+
+          y:
+            Math.random() *
+            window.innerHeight,
+
+          r:
+            Math.random() *
+              1.35 +
+            0.15,
+
+          speed:
+            Math.random() *
+              0.25 +
+            0.03,
+
+          phase:
+            Math.random() *
+            Math.PI *
+            2,
         })
       );
     };
@@ -100,10 +128,18 @@ export default function Home() {
     );
 
     const draw = (time: number) => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w =
+        window.innerWidth;
 
-      ctx.clearRect(0, 0, w, h);
+      const h =
+        window.innerHeight;
+
+      ctx.clearRect(
+        0,
+        0,
+        w,
+        h
+      );
 
       for (const star of stars) {
         const alpha =
@@ -128,29 +164,40 @@ export default function Home() {
           Math.PI * 2
         );
 
-        ctx.fillStyle = `rgba(255, ${
-          190 +
-          Math.floor(Math.random() * 50)
-        }, 70, ${alpha})`;
+        ctx.fillStyle =
+          `rgba(255, ${
+            190 +
+            Math.floor(
+              Math.random() * 50
+            )
+          }, 70, ${alpha})`;
 
         ctx.fill();
 
         star.y +=
           star.speed * 0.025;
 
-        if (star.y > h + 2) {
+        if (
+          star.y >
+          h + 2
+        ) {
           star.y = -2;
+
           star.x =
             Math.random() * w;
         }
       }
 
       animationFrame =
-        requestAnimationFrame(draw);
+        requestAnimationFrame(
+          draw
+        );
     };
 
     animationFrame =
-      requestAnimationFrame(draw);
+      requestAnimationFrame(
+        draw
+      );
 
     return () => {
       cancelAnimationFrame(
@@ -164,11 +211,9 @@ export default function Home() {
     };
   }, []);
 
-  /*
-   * =====================================================
-   * MODE CONTROL
-   * =====================================================
-   */
+  /* =====================================================
+     MODE CONTROL
+     ===================================================== */
 
   const toggleMode = () => {
     setMode((current) => {
@@ -187,19 +232,21 @@ export default function Home() {
     });
   };
 
-  /*
-   * =====================================================
-   * COMMAND SYSTEM
-   * =====================================================
-   */
+  /* =====================================================
+     COMMAND SYSTEM
+     ===================================================== */
 
   const submitCommand = () => {
-    if (!command.trim()) return;
+    if (!command.trim()) {
+      return;
+    }
 
     const currentCommand =
       command.trim();
 
-    setCoreState("thinking");
+    setCoreState(
+      "thinking"
+    );
 
     setResponse(
       `COMMAND RECEIVED: ${currentCommand}`
@@ -208,19 +255,21 @@ export default function Home() {
     setCommand("");
 
     setTimeout(() => {
-      setCoreState("speaking");
+      setCoreState(
+        "speaking"
+      );
     }, 900);
 
     setTimeout(() => {
-      setCoreState("idle");
+      setCoreState(
+        "idle"
+      );
     }, 2200);
   };
 
-  /*
-   * =====================================================
-   * RESET
-   * =====================================================
-   */
+  /* =====================================================
+     RESET
+     ===================================================== */
 
   const resetEON = () => {
     setResponse("");
@@ -229,11 +278,9 @@ export default function Home() {
     setCoreState("idle");
   };
 
-  /*
-   * =====================================================
-   * UI
-   * =====================================================
-   */
+  /* =====================================================
+     UI
+     ===================================================== */
 
   return (
     <main
@@ -250,7 +297,7 @@ export default function Home() {
         className="stars"
       />
 
-      {/* ATMOSPHERIC SPACE GLOW */}
+      {/* SPACE GLOW */}
 
       <div className="spaceGlow" />
 
@@ -262,7 +309,9 @@ export default function Home() {
         <div className="statusPanel">
           <span className="onlineDot" />
 
-          <span>ONLINE</span>
+          <span>
+            ONLINE
+          </span>
 
           <span className="separator">
             |
@@ -431,7 +480,9 @@ export default function Home() {
           <button
             className="controlButton"
             type="button"
-            onClick={toggleMode}
+            onClick={
+              toggleMode
+            }
           >
             ⚡ &nbsp;
 
@@ -443,7 +494,9 @@ export default function Home() {
           <button
             className="controlButton"
             type="button"
-            onClick={resetEON}
+            onClick={
+              resetEON
+            }
           >
             ↻ &nbsp; RESET
           </button>
