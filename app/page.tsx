@@ -22,6 +22,13 @@ import {
 
 import askEON from "@/lib/eonApi";
 
+import {
+  routeRequest,
+  getInstantResponse,
+  type ProcessingRoute,
+  type RequestPriority,
+} from "@/lib/speedEngine";
+
 
 const tools = [
   {
@@ -71,6 +78,12 @@ type CoreState =
   | "alert";
 
 
+type SpeedInfo = {
+  route: ProcessingRoute;
+  priority: RequestPriority;
+};
+
+
 export default function Home() {
 
   const canvasRef =
@@ -112,6 +125,10 @@ export default function Home() {
     useState(false);
 
 
+  const [speedInfo, setSpeedInfo] =
+    useState<SpeedInfo | null>(null);
+
+
   /* =========================================================
      STARFIELD
      ========================================================= */
@@ -124,6 +141,7 @@ export default function Home() {
     if (!canvas) {
       return;
     }
+
 
     const ctx =
       canvas.getContext("2d");
@@ -648,6 +666,24 @@ export default function Home() {
       setCommand("");
 
 
+      /* =======================================================
+         SPEED ENGINE
+         ======================================================= */
+
+      const speedDecision =
+        routeRequest(
+          currentCommand
+        );
+
+
+      setSpeedInfo({
+        route:
+          speedDecision.route,
+        priority:
+          speedDecision.priority,
+      });
+
+
       /* -------------------------------------------------------
          MODE — ALERT
          ------------------------------------------------------- */
@@ -933,6 +969,11 @@ export default function Home() {
         );
 
 
+        setSpeedInfo(
+          null
+        );
+
+
         return;
       }
 
@@ -964,7 +1005,58 @@ export default function Home() {
 
 
       /* =======================================================
-         GENERAL COMMAND → GEMINI AI
+         LOCAL SPEED ROUTE
+         ======================================================= */
+
+      if (
+        speedDecision.route ===
+        "LOCAL"
+      ) {
+
+        const instantResponse =
+          getInstantResponse(
+            currentCommand
+          );
+
+
+        if (
+          instantResponse
+        ) {
+
+          setResponse(
+            instantResponse
+              .toUpperCase()
+          );
+
+
+          setCoreState(
+            "speaking"
+          );
+
+
+          speak(
+            instantResponse,
+            mode
+          );
+
+
+          setTimeout(
+            () => {
+              setCoreState(
+                "idle"
+              );
+            },
+            3500
+          );
+
+
+          return;
+        }
+      }
+
+
+      /* =======================================================
+         FAST / HEAVY → AI BACKEND
          ======================================================= */
 
       setIsProcessing(
@@ -977,8 +1069,18 @@ export default function Home() {
       );
 
 
+      const routeLabel =
+        speedDecision.route ===
+        "FAST_AI"
+          ? "FAST AI"
+          : speedDecision.route ===
+            "HEAVY_TASK"
+            ? "HEAVY TASK"
+            : "AI";
+
+
       setResponse(
-        `EON IS PROCESSING: ${currentCommand.toUpperCase()}`
+        `EON ${routeLabel} ROUTE: ${currentCommand.toUpperCase()}`
       );
 
 
@@ -1275,6 +1377,11 @@ export default function Home() {
       setIsProcessing(
         false
       );
+
+
+      setSpeedInfo(
+        null
+      );
     };
 
 
@@ -1469,6 +1576,22 @@ export default function Home() {
             className="response"
           >
             {response}
+          </div>
+
+        )}
+
+
+        {/* SPEED ENGINE STATUS */}
+
+        {speedInfo && (
+
+          <div
+            className="speedStatus"
+            aria-label="EON speed routing status"
+          >
+            {speedInfo.route}
+            {" • "}
+            {speedInfo.priority}
           </div>
 
         )}
