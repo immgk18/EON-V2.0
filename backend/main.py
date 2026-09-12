@@ -12,10 +12,6 @@ app = FastAPI(
 )
 
 
-# ============================================================
-# CORS
-# ============================================================
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,10 +20,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ============================================================
-# REQUEST / RESPONSE MODELS
-# ============================================================
 
 class ChatRequest(BaseModel):
     message: str
@@ -39,10 +31,6 @@ class ChatResponse(BaseModel):
     model: str
 
 
-# ============================================================
-# ROOT
-# ============================================================
-
 @app.get("/")
 async def root():
     return {
@@ -53,10 +41,6 @@ async def root():
     }
 
 
-# ============================================================
-# HEALTH
-# ============================================================
-
 @app.get("/health")
 async def health():
     return {
@@ -65,10 +49,6 @@ async def health():
         "version": "2.3.0",
     }
 
-
-# ============================================================
-# CHAT
-# ============================================================
 
 @app.post(
     "/api/chat",
@@ -83,18 +63,16 @@ async def chat(
         return ChatResponse(
             response="No command received.",
             status="empty",
-            model="eon-core",
+            model="eon-ai",
         )
 
     try:
-        response = ask_eon(
-            message
-        )
+        response = ask_eon(message)
 
         return ChatResponse(
             response=response,
             status="success",
-            model="eon-ai",
+            model="gemini-ai",
         )
 
     except Exception as error:
