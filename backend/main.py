@@ -1,14 +1,37 @@
+"""
+============================================================
+EON 2.0 — AI BRAIN API
+Enhanced Operations Network
+============================================================
+
+FastAPI interface for the EON Intelligence Core.
+
+Flow:
+
+Frontend
+    ↓
+FastAPI
+    ↓
+EON Intelligence Core
+    ↓
+Gemini AI
+    ↓
+Response
+============================================================
+"""
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from ai import ask_eon
+from brain import get_brain_info
 
 
 app = FastAPI(
     title="EON — Enhanced Operations Network",
-    version="2.3.0",
-    description="EON AI Brain Backend",
+    version="3.0.0",
+    description="EON Intelligence Core API",
 )
 
 
@@ -23,12 +46,14 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
+    mode: str = "NORMAL"
 
 
 class ChatResponse(BaseModel):
     response: str
     status: str
     model: str
+    mode: str
 
 
 @app.get("/")
@@ -37,7 +62,7 @@ async def root():
         "name": "EON",
         "system": "Enhanced Operations Network",
         "status": "ONLINE",
-        "version": "2.3.0",
+        "version": "3.0.0",
     }
 
 
@@ -45,9 +70,14 @@ async def root():
 async def health():
     return {
         "status": "healthy",
-        "service": "EON AI Brain",
-        "version": "2.3.0",
+        "service": "EON Intelligence Core",
+        "version": "3.0.0",
     }
+
+
+@app.get("/api/brain")
+async def brain():
+    return get_brain_info()
 
 
 @app.post(
@@ -59,23 +89,37 @@ async def chat(
 ):
     message = request.message.strip()
 
+    mode = (
+        request.mode
+        .strip()
+        .upper()
+        if request.mode
+        else "NORMAL"
+    )
+
     if not message:
         return ChatResponse(
             response="No command received.",
             status="empty",
             model="eon-ai",
+            mode=mode,
         )
 
     try:
-        response = ask_eon(message)
+        response = ask_eon(
+            message=message,
+            mode=mode,
+        )
 
         return ChatResponse(
             response=response,
             status="success",
             model="gemini-ai",
+            mode=mode,
         )
 
     except Exception as error:
+
         print(
             f"EON AI ERROR: {error}"
         )
