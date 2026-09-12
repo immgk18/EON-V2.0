@@ -18,6 +18,27 @@ let alertVoice: SpeechSynthesisVoice | null = null;
    SPEECH RECOGNITION TYPES
    ============================================================ */
 
+export type VoiceRecognitionCallbacks = {
+  onStart?: () => void;
+  onResult?: (transcript: string) => void;
+  onEnd?: () => void;
+  onError?: (error: string) => void;
+};
+
+export type VoiceRecognitionInstance = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onstart: (() => void) | null;
+  onresult:
+    ((event: RecognitionEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onend: (() => void) | null;
+};
+
 type RecognitionEvent = Event & {
   results: {
     [index: number]: {
@@ -28,24 +49,11 @@ type RecognitionEvent = Event & {
   };
 };
 
-type RecognitionInstance = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onstart: (() => void) | null;
-  onresult: ((event: RecognitionEvent) => void) | null;
-  onerror: ((event: Event) => void) | null;
-  onend: (() => void) | null;
-};
-
 type RecognitionConstructor =
-  new () => RecognitionInstance;
+  new () => VoiceRecognitionInstance;
 
 /* ============================================================
-   BROWSER SUPPORT
+   BROWSER SPEECH SUPPORT
    ============================================================ */
 
 function speechSupported(): boolean {
@@ -67,7 +75,7 @@ function selectVoice(
     return null;
   }
 
-  const english =
+  const englishVoices =
     voices.filter((voice) =>
       voice.lang
         .toLowerCase()
@@ -75,11 +83,11 @@ function selectVoice(
     );
 
   const candidates =
-    english.length > 0
-      ? english
+    englishVoices.length > 0
+      ? englishVoices
       : voices;
 
-  const preferredMaleNames = [
+  const maleKeywords = [
     "male",
     "david",
     "mark",
@@ -94,7 +102,7 @@ function selectVoice(
     "microsoft mark",
   ];
 
-  const femaleNames = [
+  const femaleKeywords = [
     "female",
     "zira",
     "samantha",
@@ -104,8 +112,8 @@ function selectVoice(
     "karen",
   ];
 
-  let best: SpeechSynthesisVoice | null =
-    null;
+  let bestVoice:
+    SpeechSynthesisVoice | null = null;
 
   let bestScore = -Infinity;
 
@@ -114,6 +122,10 @@ function selectVoice(
       voice.name.toLowerCase();
 
     let score = 0;
+
+    /*
+     * Prefer Indian English when available.
+     */
 
     if (
       voice.lang
@@ -129,17 +141,30 @@ function selectVoice(
       score += 8;
     }
 
-    for (const keyword of preferredMaleNames) {
+    /*
+     * Prefer male-oriented voices.
+     */
+
+    for (const keyword of maleKeywords) {
       if (name.includes(keyword)) {
         score += 15;
       }
     }
 
-    for (const keyword of femaleNames) {
+    /*
+     * Avoid female-oriented voices
+     * when a better alternative exists.
+     */
+
+    for (const keyword of femaleKeywords) {
       if (name.includes(keyword)) {
         score -= 10;
       }
     }
+
+    /*
+     * High Alert slightly prefers local voices.
+     */
 
     if (
       alert &&
@@ -150,11 +175,11 @@ function selectVoice(
 
     if (score > bestScore) {
       bestScore = score;
-      best = voice;
+      bestVoice = voice;
     }
   }
 
-  return best;
+  return bestVoice;
 }
 
 /* ============================================================
@@ -166,7 +191,7 @@ export function initializeVoiceEngine(): void {
     return;
   }
 
-  const load = () => {
+  const loadVoices = () => {
     const voices =
       window.speechSynthesis.getVoices();
 
@@ -187,11 +212,11 @@ export function initializeVoiceEngine(): void {
       );
   };
 
-  load();
+  loadVoices();
 
   window.speechSynthesis.addEventListener(
     "voiceschanged",
-    load
+    loadVoices
   );
 }
 
@@ -210,7 +235,7 @@ export function setMode(
 }
 
 /* ============================================================
-   NORMAL SPEECH
+   NORMAL VOICE
    ============================================================ */
 
 function speakNormal(
@@ -223,6 +248,10 @@ function speakNormal(
 
   utterance.lang =
     "en-IN";
+
+  /*
+   * Friendly male-oriented voice.
+   */
 
   utterance.rate =
     0.94;
@@ -244,15 +273,14 @@ function speakNormal(
 }
 
 /* ============================================================
-   HIGH ALERT SPEECH
+   HIGH ALERT VOICE
    ============================================================ */
 
 function speakHighAlert(
   text: string
 ): void {
   /*
-   * Deliberate punctuation creates mechanical pauses
-   * in browser speech synthesis.
+   * Add deliberate machine-like pauses.
    */
 
   const roboticText =
@@ -260,6 +288,7 @@ function speakHighAlert(
       .replace(/\s+/g, " ")
       .replace(/\./g, "... ")
       .replace(/,/g, "... ")
+      .replace(/!/g, "... ")
       .trim();
 
   const utterance =
@@ -271,14 +300,18 @@ function speakHighAlert(
     "en-IN";
 
   /*
-   * DEEP + SLOW
+   * DEEP
+   */
+
+  utterance.pitch =
+    0.32;
+
+  /*
+   * SLOW
    */
 
   utterance.rate =
     0.64;
-
-  utterance.pitch =
-    0.32;
 
   utterance.volume =
     1;
@@ -294,7 +327,7 @@ function speakHighAlert(
 }
 
 /* ============================================================
-   MAIN SPEAK FUNCTION
+   MAIN SPEAK
    ============================================================ */
 
 export function speak(
@@ -308,11 +341,6 @@ export function speak(
   }
 
   window.speechSynthesis.cancel();
-
-  /*
-   * Give the browser a tiny moment to cancel
-   * the previous utterance.
-   */
 
   window.setTimeout(() => {
     if (
@@ -443,47 +471,47 @@ export function speakSystemStatus(
     speak(
       `System status. ${status}. Awaiting command.`
     );
-  } else {
-    speak(
-      `System status: ${status}.`
-    );
+
+    return;
   }
+
+  speak(
+    `System status: ${status}.`
+  );
 }
 
 /* ============================================================
    CREATE VOICE RECOGNITION
    ============================================================
    IMPORTANT:
-   Your existing page.tsx imports this function.
-   This keeps the microphone system compatible.
+   This matches the object-based API already used
+   by EON's page.tsx.
    ============================================================ */
 
 export function createVoiceRecognition(
-  onResult: (transcript: string) => void,
-  onStart?: () => void,
-  onEnd?: () => void,
-  onError?: (error: string) => void
-): RecognitionInstance | null {
+  callbacks: VoiceRecognitionCallbacks
+): VoiceRecognitionInstance | null {
   if (
     typeof window === "undefined"
   ) {
     return null;
   }
 
+  const browserWindow =
+    window as typeof window & {
+      SpeechRecognition?: RecognitionConstructor;
+      webkitSpeechRecognition?: RecognitionConstructor;
+    };
+
   const SpeechRecognition =
-    (
-      window as typeof window & {
-        SpeechRecognition?: RecognitionConstructor;
-        webkitSpeechRecognition?: RecognitionConstructor;
-      }
-    ).SpeechRecognition ||
-    (
-      window as typeof window & {
-        webkitSpeechRecognition?: RecognitionConstructor;
-      }
-    ).webkitSpeechRecognition;
+    browserWindow.SpeechRecognition ||
+    browserWindow.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
+    callbacks.onError?.(
+      "Speech recognition is not supported by this browser."
+    );
+
     return null;
   }
 
@@ -499,12 +527,18 @@ export function createVoiceRecognition(
   recognition.lang =
     "en-IN";
 
+  /* ----------------------------------------------------------
+     START
+     ---------------------------------------------------------- */
+
   recognition.onstart =
     () => {
-      if (onStart) {
-        onStart();
-      }
+      callbacks.onStart?.();
     };
+
+  /* ----------------------------------------------------------
+     RESULT
+     ---------------------------------------------------------- */
 
   recognition.onresult =
     (event) => {
@@ -514,31 +548,37 @@ export function createVoiceRecognition(
           .trim();
 
       if (transcript) {
-        onResult(transcript);
-      }
-    };
-
-  recognition.onerror =
-    () => {
-      if (onError) {
-        onError(
-          "Speech recognition error."
+        callbacks.onResult?.(
+          transcript
         );
       }
     };
 
+  /* ----------------------------------------------------------
+     ERROR
+     ---------------------------------------------------------- */
+
+  recognition.onerror =
+    () => {
+      callbacks.onError?.(
+        "Speech recognition error."
+      );
+    };
+
+  /* ----------------------------------------------------------
+     END
+     ---------------------------------------------------------- */
+
   recognition.onend =
     () => {
-      if (onEnd) {
-        onEnd();
-      }
+      callbacks.onEnd?.();
     };
 
   return recognition;
 }
 
 /* ============================================================
-   AUTO INITIALIZATION
+   INITIALIZATION
    ============================================================ */
 
 if (
