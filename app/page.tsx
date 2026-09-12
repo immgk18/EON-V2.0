@@ -27,13 +27,20 @@ type CoreState =
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [mode, setMode] = useState<"NORMAL" | "ALERT">("NORMAL");
+  const [mode, setMode] =
+    useState<"NORMAL" | "ALERT">("NORMAL");
 
   const [coreState, setCoreState] =
     useState<CoreState>("idle");
 
-  const [command, setCommand] = useState("");
-  const [response, setResponse] = useState("");
+  const [command, setCommand] =
+    useState("");
+
+  const [response, setResponse] =
+    useState("");
+
+  const [alertBurst, setAlertBurst] =
+    useState(false);
 
   /* =====================================================
      STARFIELD
@@ -59,7 +66,8 @@ export default function Home() {
     }[] = [];
 
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr =
+        window.devicePixelRatio || 1;
 
       canvas.width =
         window.innerWidth * dpr;
@@ -212,6 +220,151 @@ export default function Home() {
   }, []);
 
   /* =====================================================
+     HIGH ALERT SOUND
+     ===================================================== */
+
+  const playAlertSound = () => {
+    try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (
+          window as typeof window & {
+            webkitAudioContext?: typeof AudioContext;
+          }
+        ).webkitAudioContext;
+
+      if (!AudioContextClass) {
+        return;
+      }
+
+      const audioContext =
+        new AudioContextClass();
+
+      const now =
+        audioContext.currentTime;
+
+      const master =
+        audioContext.createGain();
+
+      master.gain.setValueAtTime(
+        0.0001,
+        now
+      );
+
+      master.gain.exponentialRampToValueAtTime(
+        0.18,
+        now + 0.03
+      );
+
+      master.gain.exponentialRampToValueAtTime(
+        0.0001,
+        now + 0.9
+      );
+
+      master.connect(
+        audioContext.destination
+      );
+
+      /* LOW RISING TONE */
+
+      const low =
+        audioContext.createOscillator();
+
+      low.type = "sawtooth";
+
+      low.frequency.setValueAtTime(
+        80,
+        now
+      );
+
+      low.frequency.exponentialRampToValueAtTime(
+        180,
+        now + 0.45
+      );
+
+      low.connect(master);
+
+      low.start(now);
+
+      low.stop(
+        now + 0.85
+      );
+
+      /* HIGH ENERGY TONE */
+
+      const high =
+        audioContext.createOscillator();
+
+      high.type = "triangle";
+
+      high.frequency.setValueAtTime(
+        420,
+        now + 0.08
+      );
+
+      high.frequency.exponentialRampToValueAtTime(
+        760,
+        now + 0.5
+      );
+
+      high.connect(master);
+
+      high.start(
+        now + 0.08
+      );
+
+      high.stop(
+        now + 0.68
+      );
+
+      /* FINAL ALERT PULSE */
+
+      const pulse =
+        audioContext.createOscillator();
+
+      pulse.type = "square";
+
+      pulse.frequency.setValueAtTime(
+        110,
+        now + 0.55
+      );
+
+      pulse.frequency.exponentialRampToValueAtTime(
+        55,
+        now + 0.88
+      );
+
+      const pulseGain =
+        audioContext.createGain();
+
+      pulseGain.gain.value =
+        0.18;
+
+      pulse.connect(
+        pulseGain
+      );
+
+      pulseGain.connect(
+        master
+      );
+
+      pulse.start(
+        now + 0.55
+      );
+
+      pulse.stop(
+        now + 0.88
+      );
+
+      setTimeout(() => {
+        audioContext.close();
+      }, 1000);
+    } catch {
+      // Visual alert still works if audio is unavailable.
+    }
+  };
+
+  /* =====================================================
      MODE CONTROL
      ===================================================== */
 
@@ -222,11 +375,27 @@ export default function Home() {
           ? "ALERT"
           : "NORMAL";
 
-      setCoreState(
-        next === "ALERT"
-          ? "alert"
-          : "idle"
-      );
+      setAlertBurst(true);
+
+      if (next === "ALERT") {
+        setCoreState("alert");
+
+        setResponse(
+          "HIGH ALERT MODE ACTIVATED"
+        );
+
+        playAlertSound();
+      } else {
+        setCoreState("idle");
+
+        setResponse(
+          "NORMAL MODE RESTORED"
+        );
+      }
+
+      setTimeout(() => {
+        setAlertBurst(false);
+      }, 1000);
 
       return next;
     });
@@ -244,9 +413,7 @@ export default function Home() {
     const currentCommand =
       command.trim();
 
-    setCoreState(
-      "thinking"
-    );
+    setCoreState("thinking");
 
     setResponse(
       `COMMAND RECEIVED: ${currentCommand}`
@@ -261,9 +428,7 @@ export default function Home() {
     }, 900);
 
     setTimeout(() => {
-      setCoreState(
-        "idle"
-      );
+      setCoreState("idle");
     }, 2200);
   };
 
@@ -276,6 +441,7 @@ export default function Home() {
     setCommand("");
     setMode("NORMAL");
     setCoreState("idle");
+    setAlertBurst(false);
   };
 
   /* =====================================================
@@ -428,6 +594,16 @@ export default function Home() {
           state={coreState}
         />
 
+        {alertBurst && (
+          <div
+            className={`alertBurst ${
+              mode === "ALERT"
+                ? "enteringAlert"
+                : "leavingAlert"
+            }`}
+          />
+        )}
+
         {response && (
           <div className="response">
             {response}
@@ -472,9 +648,7 @@ export default function Home() {
           </button>
         </form>
 
-        {/* =================================================
-            BOTTOM CONTROLS
-            ================================================= */}
+        {/* BOTTOM CONTROLS */}
 
         <div className="bottomControls">
           <button
@@ -502,9 +676,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* =================================================
-            FOOTER
-            ================================================= */}
+        {/* FOOTER */}
 
         <div className="footer">
           INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;
