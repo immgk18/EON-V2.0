@@ -23,11 +23,20 @@ import {
 import askEON from "@/lib/eonApi";
 
 import {
-  routeRequest,
   getInstantResponse,
   type ProcessingRoute,
   type RequestPriority,
 } from "@/lib/speedEngine";
+
+import {
+  routeUserRequest,
+  type RequestDestination,
+} from "@/lib/requestRouter";
+
+import {
+  addUserMessage,
+  addAssistantMessage,
+} from "@/lib/memory";
 
 
 const tools = [
@@ -127,6 +136,40 @@ export default function Home() {
 
   const [speedInfo, setSpeedInfo] =
     useState<SpeedInfo | null>(null);
+
+
+  /* =========================================================
+     MEMORY HELPER
+     ========================================================= */
+
+  const rememberInteraction = (
+    userMessage: string,
+    assistantMessage: string
+  ) => {
+
+    try {
+
+      addUserMessage(
+        userMessage
+      );
+
+      if (
+        assistantMessage.trim()
+      ) {
+
+        addAssistantMessage(
+          assistantMessage
+        );
+      }
+
+    } catch (error) {
+
+      console.warn(
+        "EON MEMORY ERROR:",
+        error
+      );
+    }
+  };
 
 
   /* =========================================================
@@ -670,18 +713,23 @@ export default function Home() {
          SPEED ENGINE
          ======================================================= */
 
-      const speedDecision =
-        routeRequest(
+      const routerResult =
+        routeUserRequest(
           currentCommand
         );
 
 
       setSpeedInfo({
         route:
-          speedDecision.route,
+          routerResult.speedRoute,
         priority:
-          speedDecision.priority,
+          routerResult.priority,
       });
+
+
+      const destination:
+        RequestDestination =
+        routerResult.destination;
 
 
       /* -------------------------------------------------------
@@ -708,12 +756,22 @@ export default function Home() {
         );
 
 
+        const message =
+          "HIGH ALERT MODE ACTIVATED";
+
+
         setResponse(
-          "HIGH ALERT MODE ACTIVATED"
+          message
         );
 
 
         playAlertSound();
+
+
+        rememberInteraction(
+          currentCommand,
+          message
+        );
 
 
         setTimeout(
@@ -765,8 +823,18 @@ export default function Home() {
         );
 
 
+        const message =
+          "NORMAL MODE RESTORED";
+
+
         setResponse(
-          "NORMAL MODE RESTORED"
+          message
+        );
+
+
+        rememberInteraction(
+          currentCommand,
+          message
         );
 
 
@@ -815,6 +883,12 @@ export default function Home() {
         );
 
 
+        rememberInteraction(
+          currentCommand,
+          statusText
+        );
+
+
         setCoreState(
           "speaking"
         );
@@ -858,6 +932,12 @@ export default function Home() {
         );
 
 
+        rememberInteraction(
+          currentCommand,
+          modeText
+        );
+
+
         setCoreState(
           "speaking"
         );
@@ -896,6 +976,12 @@ export default function Home() {
 
         setResponse(
           help.toUpperCase()
+        );
+
+
+        rememberInteraction(
+          currentCommand,
+          help
         );
 
 
@@ -1009,13 +1095,13 @@ export default function Home() {
          ======================================================= */
 
       if (
-        speedDecision.route ===
+        destination ===
         "LOCAL"
       ) {
 
         const instantResponse =
           getInstantResponse(
-            speedDecision
+            routerResult.speedDecision
           );
 
 
@@ -1026,6 +1112,12 @@ export default function Home() {
           setResponse(
             instantResponse
               .toUpperCase()
+          );
+
+
+          rememberInteraction(
+            currentCommand,
+            instantResponse
           );
 
 
@@ -1070,13 +1162,20 @@ export default function Home() {
 
 
       const routeLabel =
-        speedDecision.route ===
-        "FAST_AI"
-          ? "FAST AI"
-          : speedDecision.route ===
-            "HEAVY_TASK"
-            ? "HEAVY TASK"
-            : "AI";
+        destination === "HEAVY_AI"
+          ? "HEAVY AI"
+          : destination === "WEB"
+            ? "WEB → AI FALLBACK"
+            : destination === "VISION"
+              ? "VISION → AI FALLBACK"
+              : destination === "AGENT"
+                ? "AGENT → AI FALLBACK"
+                : destination === "TOOLS"
+                  ? "TOOLS → AI FALLBACK"
+                  : routerResult.speedRoute ===
+                    "FAST_AI"
+                    ? "FAST AI"
+                    : "AI";
 
 
       setResponse(
@@ -1088,11 +1187,18 @@ export default function Home() {
 
         const aiResult =
           await askEON(
-            currentCommand
+            currentCommand,
+            mode
           );
 
 
         setResponse(
+          aiResult.response
+        );
+
+
+        rememberInteraction(
+          currentCommand,
           aiResult.response
         );
 
