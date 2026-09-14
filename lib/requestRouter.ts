@@ -2,34 +2,37 @@
 
 /*
  * ============================================================
- * EON 2.0 — REQUEST ROUTER
+ * EON 2.0 — REQUEST ROUTER V2
  * Enhanced Operations Network
  * ============================================================
  *
- * Architecture:
+ * Central traffic controller for EON requests.
  *
- * User Request
- *      ↓
- * Command Engine
- *      ↓
- * Speed Engine
- *      ↓
+ * User
+ *   ↓
  * Request Router
- *      ↓
- * ┌────────────┬────────────┬──────────────┐
- * │            │            │              │
- * LOCAL      FAST AI     HEAVY TASK      FUTURE
- * │            │            │              │
- * Instant     Gemini      Agents         Web
- * response    response    workflows      Vision
- *                                         Tools
+ *   ↓
+ * ┌──────────┬──────────┬───────────┬──────────┐
+ * │  LOCAL   │    AI    │   WEB     │  VISION  │
+ * └──────────┴──────────┴───────────┴──────────┘
+ *                  │
+ *              AGENTS / TOOLS
  *
- * The Request Router is the central traffic controller
- * for EON's future intelligence architecture.
+ * Request Router v2 adds:
  *
- * IMPORTANT:
- * This module only decides where a request should go.
- * It does not pretend that future tools are already connected.
+ * - Central request classification
+ * - Speed Engine integration
+ * - Local routing
+ * - AI routing
+ * - Heavy task routing
+ * - Web routing foundation
+ * - Vision routing foundation
+ * - Agent routing foundation
+ * - Tool routing foundation
+ * - Priority classification
+ *
+ * This file does NOT execute tools yet.
+ * It only decides where a request should go.
  * ============================================================
  */
 
@@ -38,12 +41,14 @@ import {
   type ProcessingRoute,
   type RequestPriority,
   type SpeedDecision,
-} from "@/lib/speedEngine";
+} from "./speedEngine";
 
 
-/* ============================================================
-   ROUTE TYPES
-   ============================================================ */
+/*
+ * ============================================================
+ * REQUEST DESTINATIONS
+ * ============================================================
+ */
 
 export type RequestDestination =
   | "LOCAL"
@@ -54,6 +59,12 @@ export type RequestDestination =
   | "AGENT"
   | "TOOLS";
 
+
+/*
+ * ============================================================
+ * ROUTER RESULT
+ * ============================================================
+ */
 
 export type RequestRouterResult = {
   original: string;
@@ -68,14 +79,156 @@ export type RequestRouterResult = {
   requiresTool: boolean;
 
   reason: string;
+
+  speedDecision: SpeedDecision;
 };
 
 
-/* ============================================================
-   NORMALIZATION
-   ============================================================ */
+/*
+ * ============================================================
+ * KEYWORD GROUPS
+ * ============================================================
+ *
+ * These are routing signals only.
+ * Actual capabilities will be connected later.
+ * ============================================================
+ */
 
-function normalizeRequest(
+const WEB_KEYWORDS = [
+  "search the web",
+  "search online",
+  "browse the web",
+  "browse online",
+  "look online",
+  "look it up",
+  "look this up",
+  "find online",
+  "search online",
+  "latest news",
+  "latest information",
+  "current news",
+  "current information",
+  "today's news",
+  "what happened today",
+  "recent news",
+  "recent update",
+  "latest update",
+  "live information",
+  "current price",
+  "current weather",
+  "website",
+  "web search",
+  "internet",
+];
+
+
+const VISION_KEYWORDS = [
+  "analyze this image",
+  "analyze the image",
+  "analyze image",
+  "analyze this photo",
+  "analyze the photo",
+  "analyze photo",
+  "look at this image",
+  "look at the image",
+  "look at this photo",
+  "look at the photo",
+  "what is in this image",
+  "what is in the image",
+  "what does this image show",
+  "what does the image show",
+  "read this image",
+  "read the image",
+  "read this screenshot",
+  "read the screenshot",
+  "image analysis",
+  "vision analysis",
+  "visual analysis",
+];
+
+
+const AGENT_KEYWORDS = [
+  "create a project",
+  "build a project",
+  "build an app",
+  "create an app",
+  "develop an app",
+  "develop a website",
+  "build a website",
+  "build a system",
+  "create a system",
+  "automate this",
+  "automate the task",
+  "do this for me",
+  "handle this for me",
+  "complete this task",
+  "finish this task",
+  "execute this workflow",
+  "run this workflow",
+  "multi step",
+  "multi-step",
+  "step by step",
+  "plan and execute",
+  "research and build",
+  "research then build",
+  "design and build",
+];
+
+
+const TOOL_KEYWORDS = [
+  "calculate",
+  "calculate this",
+  "convert",
+  "summarize this file",
+  "read this file",
+  "analyze this file",
+  "analyze this document",
+  "open this file",
+  "process this file",
+  "process the data",
+  "analyze the data",
+  "create a file",
+  "generate a file",
+  "make a pdf",
+  "make a document",
+  "create a spreadsheet",
+  "create an excel",
+  "create a presentation",
+];
+
+
+const HEAVY_TASK_KEYWORDS = [
+  "complex analysis",
+  "deep analysis",
+  "deep research",
+  "large project",
+  "full project",
+  "complete application",
+  "complete system",
+  "architecture",
+  "simulation",
+  "engineering analysis",
+  "engineering design",
+  "scientific computation",
+  "machine learning",
+  "train a model",
+  "train an ai",
+  "computer vision",
+  "data science",
+  "large dataset",
+  "optimize the system",
+  "debug the entire",
+  "refactor the entire",
+];
+
+
+/*
+ * ============================================================
+ * NORMALIZATION
+ * ============================================================
+ */
+
+function normalizeInput(
   input: string
 ): string {
 
@@ -86,9 +239,11 @@ function normalizeRequest(
 }
 
 
-/* ============================================================
-   KEYWORD DETECTION
-   ============================================================ */
+/*
+ * ============================================================
+ * KEYWORD MATCHING
+ * ============================================================
+ */
 
 function containsKeyword(
   input: string,
@@ -102,208 +257,37 @@ function containsKeyword(
 }
 
 
-/* ============================================================
-   WEB DETECTION
-   ============================================================ */
+/*
+ * ============================================================
+ * DESTINATION CLASSIFICATION
+ * ============================================================
+ *
+ * Priority:
+ *
+ * 1. Vision
+ * 2. Web
+ * 3. Agent
+ * 4. Tools
+ * 5. Heavy AI
+ * 6. Local
+ * 7. Fast AI
+ * 8. Normal AI
+ *
+ * This prevents a complex request from accidentally being
+ * classified as a simple local request.
+ * ============================================================
+ */
 
-const WEB_KEYWORDS = [
-  "search the web",
-  "search online",
-  "search internet",
-  "browse the web",
-  "browse online",
-  "look online",
-  "look it up",
-  "find online",
-  "latest news",
-  "latest information",
-  "current news",
-  "current information",
-  "what is happening",
-  "what happened today",
-  "today's news",
-  "recent news",
-  "recent information",
-  "website",
-  "web search",
-  "internet search",
-];
-
-
-/* ============================================================
-   VISION DETECTION
-   ============================================================ */
-
-const VISION_KEYWORDS = [
-  "analyze this image",
-  "analyse this image",
-  "analyze the image",
-  "analyse the image",
-  "look at this image",
-  "look at the image",
-  "inspect this image",
-  "inspect the image",
-  "image analysis",
-  "photo analysis",
-  "analyze this photo",
-  "analyse this photo",
-  "read this image",
-  "read the image",
-  "what is in this image",
-  "what's in this image",
-  "identify this image",
-  "identify the object",
-];
-
-
-/* ============================================================
-   AGENT DETECTION
-   ============================================================ */
-
-const AGENT_KEYWORDS = [
-  "create an agent",
-  "build an agent",
-  "run an agent",
-  "use an agent",
-  "autonomous agent",
-  "agent workflow",
-  "agent task",
-  "multi agent",
-  "multi-agent",
-  "autonomous workflow",
-  "execute workflow",
-  "run workflow",
-];
-
-
-/* ============================================================
-   TOOL DETECTION
-   ============================================================ */
-
-const TOOL_KEYWORDS = [
-  "open a file",
-  "read a file",
-  "create a file",
-  "edit a file",
-  "analyze a file",
-  "generate a document",
-  "create a document",
-  "create a report",
-  "generate a report",
-  "calculate",
-  "run calculation",
-  "run code",
-  "execute code",
-  "process data",
-  "analyze data",
-  "analyse data",
-];
-
-
-/* ============================================================
-   HEAVY TASK DETECTION
-   ============================================================ */
-
-const HEAVY_TASK_KEYWORDS = [
-  "design a system",
-  "design a circuit",
-  "design an aircraft",
-  "design a spacecraft",
-  "design a satellite",
-  "engineering analysis",
-  "structural analysis",
-  "thermal analysis",
-  "fluid analysis",
-  "simulation",
-  "simulate",
-  "optimization",
-  "optimisation",
-  "large dataset",
-  "deep analysis",
-  "detailed analysis",
-  "complex calculation",
-  "solve this engineering",
-  "engineering problem",
-  "scientific computation",
-  "machine learning model",
-  "train a model",
-  "build a complete application",
-  "build a complete system",
-  "full application",
-  "full system",
-];
-
-
-/* ============================================================
-   PRIORITY HELPERS
-   ============================================================ */
-
-function getPriority(
+function determineDestination(
+  normalized: string,
   speedDecision: SpeedDecision
-): RequestPriority {
+): RequestDestination {
 
-  return speedDecision.priority;
-}
-
-
-/* ============================================================
-   REQUEST ROUTER
-   ============================================================ */
-
-export function routeUserRequest(
-  input: string
-): RequestRouterResult {
-
-  const original =
-    input.trim();
-
-  const normalized =
-    normalizeRequest(input);
-
-
-  /* ----------------------------------------------------------
-     EMPTY REQUEST
-     ---------------------------------------------------------- */
-
-  if (!normalized) {
-
-    return {
-      original,
-      normalized,
-
-      destination: "LOCAL",
-
-      speedRoute: "LOCAL",
-      priority: "INSTANT",
-
-      requiresAI: false,
-      requiresTool: false,
-
-      reason:
-        "No request received.",
-    };
-  }
-
-
-  /* ----------------------------------------------------------
-     SPEED ENGINE
-     ---------------------------------------------------------- */
-
-  const speedDecision =
-    routeRequest(
-      original
-    );
-
-
-  const priority =
-    getPriority(
-      speedDecision
-    );
-
-
-  /* ----------------------------------------------------------
-     VISION
-     ---------------------------------------------------------- */
+  /*
+   * ----------------------------------------------------------
+   * VISION
+   * ----------------------------------------------------------
+   */
 
   if (
     containsKeyword(
@@ -311,30 +295,15 @@ export function routeUserRequest(
       VISION_KEYWORDS
     )
   ) {
-
-    return {
-      original,
-      normalized,
-
-      destination: "VISION",
-
-      speedRoute:
-        speedDecision.route,
-
-      priority,
-
-      requiresAI: true,
-      requiresTool: true,
-
-      reason:
-        "Request appears to require computer vision or image understanding.",
-    };
+    return "VISION";
   }
 
 
-  /* ----------------------------------------------------------
-     WEB
-     ---------------------------------------------------------- */
+  /*
+   * ----------------------------------------------------------
+   * WEB
+   * ----------------------------------------------------------
+   */
 
   if (
     containsKeyword(
@@ -342,30 +311,15 @@ export function routeUserRequest(
       WEB_KEYWORDS
     )
   ) {
-
-    return {
-      original,
-      normalized,
-
-      destination: "WEB",
-
-      speedRoute:
-        speedDecision.route,
-
-      priority,
-
-      requiresAI: true,
-      requiresTool: true,
-
-      reason:
-        "Request appears to require current web or internet information.",
-    };
+    return "WEB";
   }
 
 
-  /* ----------------------------------------------------------
-     AGENT
-     ---------------------------------------------------------- */
+  /*
+   * ----------------------------------------------------------
+   * AGENTS
+   * ----------------------------------------------------------
+   */
 
   if (
     containsKeyword(
@@ -373,30 +327,15 @@ export function routeUserRequest(
       AGENT_KEYWORDS
     )
   ) {
-
-    return {
-      original,
-      normalized,
-
-      destination: "AGENT",
-
-      speedRoute:
-        speedDecision.route,
-
-      priority,
-
-      requiresAI: true,
-      requiresTool: true,
-
-      reason:
-        "Request appears to require an autonomous or multi-step agent workflow.",
-    };
+    return "AGENT";
   }
 
 
-  /* ----------------------------------------------------------
-     TOOLS
-     ---------------------------------------------------------- */
+  /*
+   * ----------------------------------------------------------
+   * TOOLS
+   * ----------------------------------------------------------
+   */
 
   if (
     containsKeyword(
@@ -404,30 +343,15 @@ export function routeUserRequest(
       TOOL_KEYWORDS
     )
   ) {
-
-    return {
-      original,
-      normalized,
-
-      destination: "TOOLS",
-
-      speedRoute:
-        speedDecision.route,
-
-      priority,
-
-      requiresAI: true,
-      requiresTool: true,
-
-      reason:
-        "Request appears to require an external tool or computation capability.",
-    };
+    return "TOOLS";
   }
 
 
-  /* ----------------------------------------------------------
-     HEAVY AI
-     ---------------------------------------------------------- */
+  /*
+   * ----------------------------------------------------------
+   * HEAVY AI
+   * ----------------------------------------------------------
+   */
 
   if (
     speedDecision.route ===
@@ -437,115 +361,57 @@ export function routeUserRequest(
       HEAVY_TASK_KEYWORDS
     )
   ) {
-
-    return {
-      original,
-      normalized,
-
-      destination: "HEAVY_AI",
-
-      speedRoute:
-        "HEAVY_TASK",
-
-      priority,
-
-      requiresAI: true,
-      requiresTool: false,
-
-      reason:
-        "Request appears complex and should use the heavy reasoning pipeline.",
-    };
+    return "HEAVY_AI";
   }
 
 
-  /* ----------------------------------------------------------
-     LOCAL
-     ---------------------------------------------------------- */
+  /*
+   * ----------------------------------------------------------
+   * LOCAL
+   * ----------------------------------------------------------
+   */
 
   if (
     speedDecision.route ===
     "LOCAL"
   ) {
-
-    return {
-      original,
-      normalized,
-
-      destination: "LOCAL",
-
-      speedRoute:
-        "LOCAL",
-
-      priority,
-
-      requiresAI: false,
-      requiresTool: false,
-
-      reason:
-        "Request can be handled locally without an AI backend call.",
-    };
+    return "LOCAL";
   }
 
 
-  /* ----------------------------------------------------------
-     FAST AI
-     ---------------------------------------------------------- */
+  /*
+   * ----------------------------------------------------------
+   * FAST AI
+   * ----------------------------------------------------------
+   */
 
   if (
     speedDecision.route ===
     "FAST_AI"
   ) {
-
-    return {
-      original,
-      normalized,
-
-      destination: "AI",
-
-      speedRoute:
-        "FAST_AI",
-
-      priority,
-
-      requiresAI: true,
-      requiresTool: false,
-
-      reason:
-        "Request can be handled through the fast AI pipeline.",
-    };
+    return "AI";
   }
 
 
-  /* ----------------------------------------------------------
-     DEFAULT AI
-     ---------------------------------------------------------- */
+  /*
+   * ----------------------------------------------------------
+   * DEFAULT
+   * ----------------------------------------------------------
+   */
 
-  return {
-    original,
-    normalized,
-
-    destination: "AI",
-
-    speedRoute:
-      speedDecision.route,
-
-    priority,
-
-    requiresAI: true,
-    requiresTool: false,
-
-    reason:
-      "Request will be handled by the general EON AI pipeline.",
-  };
+  return "AI";
 }
 
 
-/* ============================================================
-   ROUTE DISPLAY
-   ============================================================ */
+/*
+ * ============================================================
+ * ROUTER REASON
+ * ============================================================
+ */
 
-export function getRouteLabel(
-  destination: RequestDestination
+function getRoutingReason(
+  destination: RequestDestination,
+  speedDecision: SpeedDecision
 ): string {
 
   switch (
@@ -553,25 +419,220 @@ export function getRouteLabel(
   ) {
 
     case "LOCAL":
-      return "LOCAL";
+      return "Request can be handled locally without an AI request.";
+
 
     case "AI":
-      return "FAST AI";
+      return "Request requires EON AI reasoning.";
+
+
+    case "HEAVY_AI":
+      return "Request requires deeper AI processing or a complex workflow.";
+
+
+    case "WEB":
+      return "Request requires current web or online information.";
+
+
+    case "VISION":
+      return "Request appears to require visual or image understanding.";
+
+
+    case "AGENT":
+      return "Request appears to require a multi-step autonomous workflow.";
+
+
+    case "TOOLS":
+      return "Request appears to require an external tool or file operation.";
+
+
+    default:
+      return `Routed using ${speedDecision.route}.`;
+  }
+}
+
+
+/*
+ * ============================================================
+ * MAIN ROUTER
+ * ============================================================
+ */
+
+export function routeUserRequest(
+  input: string
+): RequestRouterResult {
+
+  const original =
+    input.trim();
+
+
+  const normalized =
+    normalizeInput(
+      input
+    );
+
+
+  /*
+   * Empty request
+   */
+
+  if (!normalized) {
+
+    const emptySpeedDecision =
+      routeRequest("");
+
+
+    return {
+      original,
+      normalized,
+
+      destination:
+        "LOCAL",
+
+      speedRoute:
+        emptySpeedDecision.route,
+
+      priority:
+        emptySpeedDecision.priority,
+
+      requiresAI:
+        false,
+
+      requiresTool:
+        false,
+
+      reason:
+        "No request received.",
+
+      speedDecision:
+        emptySpeedDecision,
+    };
+  }
+
+
+  /*
+   * ----------------------------------------------------------
+   * SPEED ENGINE
+   * ----------------------------------------------------------
+   */
+
+  const speedDecision =
+    routeRequest(
+      original
+    );
+
+
+  /*
+   * ----------------------------------------------------------
+   * DESTINATION
+   * ----------------------------------------------------------
+   */
+
+  const destination =
+    determineDestination(
+      normalized,
+      speedDecision
+    );
+
+
+  /*
+   * ----------------------------------------------------------
+   * REQUIREMENTS
+   * ----------------------------------------------------------
+   */
+
+  const requiresAI =
+    destination === "AI" ||
+    destination === "HEAVY_AI" ||
+    destination === "WEB" ||
+    destination === "VISION" ||
+    destination === "AGENT";
+
+
+  const requiresTool =
+    destination === "TOOLS" ||
+    destination === "WEB" ||
+    destination === "VISION" ||
+    destination === "AGENT";
+
+
+  /*
+   * ----------------------------------------------------------
+   * REASON
+   * ----------------------------------------------------------
+   */
+
+  const reason =
+    getRoutingReason(
+      destination,
+      speedDecision
+    );
+
+
+  return {
+    original,
+    normalized,
+
+    destination,
+
+    speedRoute:
+      speedDecision.route,
+
+    priority:
+      speedDecision.priority,
+
+    requiresAI,
+
+    requiresTool,
+
+    reason,
+
+    speedDecision,
+  };
+}
+
+
+/*
+ * ============================================================
+ * ROUTE LABEL
+ * ============================================================
+ */
+
+export function getRouteLabel(
+  result: RequestRouterResult
+): string {
+
+  switch (
+    result.destination
+  ) {
+
+    case "LOCAL":
+      return "LOCAL";
+
+
+    case "AI":
+      return "AI";
+
 
     case "HEAVY_AI":
       return "HEAVY AI";
 
+
     case "WEB":
       return "WEB";
+
 
     case "VISION":
       return "VISION";
 
+
     case "AGENT":
       return "AGENT";
 
+
     case "TOOLS":
       return "TOOLS";
+
 
     default:
       return "AI";
@@ -579,63 +640,41 @@ export function getRouteLabel(
 }
 
 
-/* ============================================================
-   ROUTE DESCRIPTION
-   ============================================================ */
+/*
+ * ============================================================
+ * ROUTE DESCRIPTION
+ * ============================================================
+ */
 
 export function getRouteDescription(
-  destination: RequestDestination
+  result: RequestRouterResult
 ): string {
 
-  switch (
-    destination
-  ) {
-
-    case "LOCAL":
-      return "Handled locally for instant response.";
-
-    case "AI":
-      return "Routed through the fast AI intelligence pipeline.";
-
-    case "HEAVY_AI":
-      return "Routed through the heavy reasoning pipeline.";
-
-    case "WEB":
-      return "Requires web intelligence and current information.";
-
-    case "VISION":
-      return "Requires visual or image understanding.";
-
-    case "AGENT":
-      return "Requires autonomous multi-step execution.";
-
-    case "TOOLS":
-      return "Requires an external tool or computation module.";
-
-    default:
-      return "Routed through EON intelligence.";
-  }
+  return (
+    `${getRouteLabel(result)} ROUTE • ` +
+    `${result.priority} PRIORITY • ` +
+    `${result.reason}`
+  );
 }
 
 
-/* ============================================================
-   ROUTER STATUS
-   ============================================================ */
+/*
+ * ============================================================
+ * ROUTER STATUS
+ * ============================================================
+ */
 
 export function getRequestRouterStatus() {
 
   return {
-
-    status: "ONLINE",
-
-    router:
+    engine:
       "EON Request Router",
 
     version:
-      "1.0.0",
+      "2.0",
 
-    architecture:
-      "Command Engine → Speed Engine → Request Router",
+    status:
+      "online",
 
     destinations: [
       "LOCAL",
@@ -647,14 +686,29 @@ export function getRequestRouterStatus() {
       "TOOLS",
     ],
 
-    principle:
-      "Route every request to the most appropriate execution layer.",
+    capabilities: {
+      localRouting: true,
+      aiRouting: true,
+      heavyTaskRouting: true,
+      webRouting: true,
+      visionRouting: true,
+      agentRouting: true,
+      toolRouting: true,
+    },
+
+    execution:
+      "routing_only",
+
+    note:
+      "Web, vision, agent and tool destinations are routing foundations and require their respective execution systems to be connected.",
   };
 }
 
 
-/* ============================================================
-   DEFAULT EXPORT
-   ============================================================ */
+/*
+ * ============================================================
+ * DEFAULT EXPORT
+ * ============================================================
+ */
 
 export default routeUserRequest;
