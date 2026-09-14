@@ -1,29 +1,11 @@
-"""
-============================================================
-EON 2.0 — AI ENGINE
-Enhanced Operations Network
-============================================================
-
-Connects EON Brain to Gemini.
-
-Memory Integration v1
-------------------------------------------------------------
-The frontend supplies a memory_context string with each
-request. This file passes that context into the EON brain.
-============================================================
-"""
-
 import os
 import time
 
 from google import genai
+from google.genai import types
 
 from brain import build_context
 
-
-# ============================================================
-# CONFIGURATION
-# ============================================================
 
 MODEL = os.getenv(
     "EON_AI_MODEL",
@@ -31,42 +13,26 @@ MODEL = os.getenv(
 )
 
 MAX_RETRIES = 3
-RETRY_DELAY = 3
-
-
-# ============================================================
-# GEMINI CLIENT
-# ============================================================
+RETRY_DELAY_SECONDS = 3
 
 api_key = os.getenv(
     "GEMINI_API_KEY"
 )
-
 
 if not api_key:
     raise RuntimeError(
         "GEMINI_API_KEY environment variable is not configured."
     )
 
-
 client = genai.Client(
     api_key=api_key
 )
 
 
-# ============================================================
-# TEMPORARY ERROR DETECTION
-# ============================================================
+def is_temporary_error(error: Exception) -> bool:
+    text = str(error).lower()
 
-def is_temporary_error(
-    error: Exception,
-) -> bool:
-
-    message = str(
-        error
-    ).lower()
-
-    temporary_patterns = [
+    temporary_markers = [
         "503",
         "unavailable",
         "high demand",
@@ -78,162 +44,133 @@ def is_temporary_error(
     ]
 
     return any(
-        pattern in message
-        for pattern in temporary_patterns
+        marker in text
+        for marker in temporary_markers
     )
 
 
-# ============================================================
-# ASK EON
-# ============================================================
+def create_generation_config(
+    use_web: bool,
+) -> types.GenerateContentConfig:
+    if use_web:
+        grounding_tool = types.Tool(
+            google_search=types.GoogleSearch()
+        )
+
+        return types.GenerateContentConfig(
+            tools=[
+                grounding_tool
+            ]
+        )
+
+    return types.GenerateContentConfig()
+
 
 async def ask_eon(
     message: str,
     mode: str = "NORMAL",
     memory_context: str = "",
+    destination: str = "AI",
 ):
-
-    cleaned_message = (
-        message.strip()
-    )
-
-
-    if not cleaned_message:
-
-        return {
-            "response":
-                "No command received.",
-
-            "status":
-                "empty",
-
-            "model":
-                MODEL,
-
-            "mode":
-                mode,
-        }
-
+    cleaned_message = message.strip()
 
     normalized_mode = (
         mode or "NORMAL"
     ).strip().upper()
 
+    normalized_destination = (
+        destination or "AI"
+    ).strip().upper()
 
-    cleaned_memory = (
-        memory_context or ""
-    ).strip()
+    if not cleaned_message:
+        return {
+            "response": "No command received.",
+            "status": "empty",
+            "model": MODEL,
+            "mode": normalized_mode,
+        }
 
-
-    # ========================================================
-    # BUILD EON CONTEXT
-    # ========================================================
+    use_web = (
+        normalized_destination == "WEB"
+    )
 
     context = build_context(
         message=cleaned_message,
         mode=normalized_mode,
-        memory_context=cleaned_memory,
+        memory_context=memory_context,
     )
 
+    if use_web:
+        context = (
+            context
+            + "\n\n"
+            + "WEB INTELLIGENCE MODE:\n"
+            + "Use Google Search when current or "
+              "online information is useful.\n"
+            + "Prefer recent and authoritative "
+              "sources.\n"
+            + "Clearly distinguish current web "
+              "information from general knowledge.\n"
+            + "Do not invent sources or claims.\n"
+        )
 
-    # ========================================================
-    # GEMINI REQUEST
-    # ========================================================
+    config = create_generation_config(
+        use_web=use_web
+    )
 
     last_error = None
-
 
     for attempt in range(
         MAX_RETRIES
     ):
-
         try:
-
             response = (
                 client.models.generate_content(
                     model=MODEL,
                     contents=context,
+                    config=config,
                 )
             )
 
-
-            response_text = (
-                getattr(
-                    response,
-                    "text",
-                    None,
-                )
-                or ""
-            ).strip()
-
-
-            if not response_text:
-
-                response_text = (
-                    "EON received an empty AI response."
-                )
-
+            answer = (
+                response.text
+                if response.text
+                else "EON could not generate a response."
+            )
 
             return {
-                "response":
-                    response_text,
-
-                "status":
-                    "success",
-
-                "model":
-                    MODEL,
-
-                "mode":
-                    normalized_mode,
+                "response": answer,
+                "status": (
+                    "web_grounded"
+                    if use_web
+                    else "success"
+                ),
+                "model": MODEL,
+                "mode": normalized_mode,
             }
 
-
         except Exception as error:
-
             last_error = error
 
-
-            if (
-                is_temporary_error(
-                    error
-                )
-                and attempt <
-                MAX_RETRIES - 1
-            ):
-
-                print(
-                    f"EON AI temporary error "
-                    f"(attempt {attempt + 1}/"
-                    f"{MAX_RETRIES}): "
-                    f"{error}"
-                )
-
-
-                time.sleep(
-                    RETRY_DELAY
-                )
-
-                continue
-
-
             print(
-                "EON AI ERROR:",
+                f"EON AI ERROR "
+                f"(attempt {attempt + 1}/"
+                f"{MAX_RETRIES}):",
                 error,
             )
 
+            if (
+                attempt
+                < MAX_RETRIES - 1
+                and is_temporary_error(error)
+            ):
+                time.sleep(
+                    RETRY_DELAY_SECONDS
+                )
+                continue
+
             break
 
-
-    # ========================================================
-    # FINAL FAILURE
-    # ========================================================
-
-    if last_error:
-
-        raise last_error
-
-
     raise RuntimeError(
-        "EON AI request failed."
+        f"EON AI request failed: {last_error}"
     )
