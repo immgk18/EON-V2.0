@@ -1,22 +1,26 @@
 """
 ============================================================
-EON 2.0 — AI BRAIN API
+EON 2.0 — BACKEND API
 Enhanced Operations Network
 ============================================================
 
-FastAPI interface for the EON Intelligence Core.
-
-Flow:
+FastAPI entry point for EON.
 
 Frontend
     ↓
 FastAPI
     ↓
-EON Intelligence Core
+EON Brain
     ↓
 Gemini AI
-    ↓
-Response
+
+Memory Integration v1
+------------------------------------------------------------
+The frontend stores EON memory locally and sends the relevant
+memory context with each AI request.
+
+The backend receives that context and passes it to the
+EON brain so Gemini can use it while generating a response.
 ============================================================
 """
 
@@ -28,26 +32,52 @@ from ai import ask_eon
 from brain import get_brain_info
 
 
+# ============================================================
+# EON CONFIGURATION
+# ============================================================
+
+EON_NAME = "EON"
+EON_SYSTEM = "Enhanced Operations Network"
+EON_VERSION = "3.0.0"
+
+
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
+
 app = FastAPI(
     title="EON — Enhanced Operations Network",
-    version="3.0.0",
-    description="EON Intelligence Core API",
+    description="EON 2.0 Intelligence Backend",
+    version=EON_VERSION,
 )
 
+
+# ============================================================
+# CORS
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
+# ============================================================
+# REQUEST MODEL
+# ============================================================
+
 class ChatRequest(BaseModel):
     message: str
     mode: str = "NORMAL"
+    memory_context: str = ""
 
+
+# ============================================================
+# RESPONSE MODEL
+# ============================================================
 
 class ChatResponse(BaseModel):
     response: str
@@ -56,29 +86,46 @@ class ChatResponse(BaseModel):
     mode: str
 
 
+# ============================================================
+# ROOT
+# ============================================================
+
 @app.get("/")
 async def root():
     return {
-        "name": "EON",
-        "system": "Enhanced Operations Network",
-        "status": "ONLINE",
-        "version": "3.0.0",
+        "service": EON_NAME,
+        "system": EON_SYSTEM,
+        "version": EON_VERSION,
+        "status": "online",
     }
 
+
+# ============================================================
+# HEALTH
+# ============================================================
 
 @app.get("/health")
 async def health():
     return {
-        "status": "healthy",
         "service": "EON Intelligence Core",
-        "version": "3.0.0",
+        "system": EON_SYSTEM,
+        "version": EON_VERSION,
+        "status": "healthy",
     }
 
+
+# ============================================================
+# BRAIN INFORMATION
+# ============================================================
 
 @app.get("/api/brain")
 async def brain():
     return get_brain_info()
 
+
+# ============================================================
+# CHAT
+# ============================================================
 
 @app.post(
     "/api/chat",
@@ -87,47 +134,75 @@ async def brain():
 async def chat(
     request: ChatRequest,
 ):
+
     message = request.message.strip()
+
+    if not message:
+        raise HTTPException(
+            status_code=400,
+            detail="No message received.",
+        )
+
 
     mode = (
         request.mode
-        .strip()
-        .upper()
-        if request.mode
-        else "NORMAL"
-    )
+        or "NORMAL"
+    ).strip().upper()
 
-    if not message:
-        return ChatResponse(
-            response="No command received.",
-            status="empty",
-            model="eon-ai",
-            mode=mode,
-        )
+
+    memory_context = (
+        request.memory_context
+        or ""
+    ).strip()
+
 
     try:
-        response = ask_eon(
+
+        result = await ask_eon(
             message=message,
             mode=mode,
+            memory_context=memory_context,
         )
 
         return ChatResponse(
-            response=response,
-            status="success",
-            model="gemini-ai",
-            mode=mode,
+            response=result["response"],
+            status=result.get(
+                "status",
+                "success",
+            ),
+            model=result.get(
+                "model",
+                "eon-ai",
+            ),
+            mode=result.get(
+                "mode",
+                mode,
+            ),
         )
 
     except Exception as error:
 
         print(
-            f"EON AI ERROR: {error}"
+            "EON CHAT ERROR:",
+            error,
         )
 
         raise HTTPException(
-            status_code=500,
-            detail=(
-                "EON AI Brain could not "
-                "process the request."
-            ),
+            status_code=503,
+            detail=str(error),
         )
+
+
+# ============================================================
+# SERVER ENTRY POINT
+# ============================================================
+
+if __name__ == "__main__":
+
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=10000,
+    )
