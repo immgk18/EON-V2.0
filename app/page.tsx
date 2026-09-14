@@ -1,24 +1,5 @@
 "use client";
 
-/*
- * ============================================================
- * EON 2.0 — MAIN INTERFACE
- * Enhanced Operations Network
- * ============================================================
- *
- * Core systems:
- * - Cinematic EON interface
- * - Living Energy Core
- * - Voice recognition
- * - Voice synthesis
- * - Command Engine
- * - Speed Engine
- * - Local command execution
- * - Gemini AI backend
- * - Memory Engine integration
- * ============================================================
- */
-
 import {
   useEffect,
   useRef,
@@ -48,17 +29,6 @@ import {
   type RequestPriority,
 } from "@/lib/speedEngine";
 
-import {
-  addUserMessage,
-  addAssistantMessage,
-} from "@/lib/memory";
-
-
-/*
- * ============================================================
- * TOOL CONFIGURATION
- * ============================================================
- */
 
 const tools = [
   {
@@ -100,12 +70,6 @@ const toolsRight = [
 ];
 
 
-/*
- * ============================================================
- * CORE STATE
- * ============================================================
- */
-
 type CoreState =
   | "idle"
   | "listening"
@@ -120,23 +84,10 @@ type SpeedInfo = {
 };
 
 
-/*
- * ============================================================
- * HOME
- * ============================================================
- */
-
 export default function Home() {
-
-  /*
-   * ----------------------------------------------------------
-   * REFERENCES
-   * ----------------------------------------------------------
-   */
 
   const canvasRef =
     useRef<HTMLCanvasElement>(null);
-
 
   const recognitionRef =
     useRef<
@@ -145,12 +96,6 @@ export default function Home() {
       >
     >(null);
 
-
-  /*
-   * ----------------------------------------------------------
-   * STATE
-   * ----------------------------------------------------------
-   */
 
   const [mode, setMode] =
     useState<
@@ -184,59 +129,9 @@ export default function Home() {
     useState<SpeedInfo | null>(null);
 
 
-  /*
-   * =========================================================
-   * MEMORY HELPER
-   * =========================================================
-   *
-   * Stores the interaction locally after a successful
-   * response.
-   *
-   * Memory is intentionally handled here instead of inside
-   * eonApi.ts so local commands and AI commands use the same
-   * memory system.
-   * =========================================================
-   */
-
-  const rememberInteraction = (
-    userMessage: string,
-    assistantMessage: string
-  ) => {
-
-    try {
-
-      addUserMessage(
-        userMessage
-      );
-
-      if (
-        assistantMessage.trim()
-      ) {
-
-        addAssistantMessage(
-          assistantMessage
-        );
-      }
-
-    } catch (error) {
-
-      /*
-       * Memory must never break EON.
-       */
-
-      console.warn(
-        "EON MEMORY ERROR:",
-        error
-      );
-    }
-  };
-
-
-  /*
-   * =========================================================
-   * STARFIELD
-   * =========================================================
-   */
+  /* =========================================================
+     STARFIELD
+     ========================================================= */
 
   useEffect(() => {
 
@@ -462,11 +357,9 @@ export default function Home() {
   }, []);
 
 
-  /*
-   * =========================================================
-   * ALERT SOUND
-   * =========================================================
-   */
+  /* =========================================================
+     ALERT SOUND
+     ========================================================= */
 
   const playAlertSound =
     () => {
@@ -647,11 +540,9 @@ export default function Home() {
     };
 
 
-  /*
-   * =========================================================
-   * MODE SWITCH
-   * =========================================================
-   */
+  /* =========================================================
+     MODE SWITCH
+     ========================================================= */
 
   const toggleMode =
     () => {
@@ -676,27 +567,17 @@ export default function Home() {
             next === "ALERT"
           ) {
 
-            const message =
-              "HIGH ALERT MODE ACTIVATED";
-
-
             setCoreState(
               "alert"
             );
 
 
             setResponse(
-              message
+              "HIGH ALERT MODE ACTIVATED"
             );
 
 
             playAlertSound();
-
-
-            rememberInteraction(
-              "Activate high alert mode.",
-              message
-            );
 
 
             setTimeout(
@@ -713,23 +594,13 @@ export default function Home() {
 
           } else {
 
-            const message =
-              "NORMAL MODE RESTORED";
-
-
             setCoreState(
               "idle"
             );
 
 
             setResponse(
-              message
-            );
-
-
-            rememberInteraction(
-              "Activate normal mode.",
-              message
+              "NORMAL MODE RESTORED"
             );
 
 
@@ -761,11 +632,9 @@ export default function Home() {
     };
 
 
-  /*
-   * =========================================================
-   * COMMAND EXECUTION
-   * =========================================================
-   */
+  /* =========================================================
+     COMMAND EXECUTION
+     ========================================================= */
 
   const runCommand =
     async (
@@ -797,11 +666,9 @@ export default function Home() {
       setCommand("");
 
 
-      /*
-       * -------------------------------------------------------
-       * SPEED ENGINE
-       * -------------------------------------------------------
-       */
+      /* =======================================================
+         SPEED ENGINE
+         ======================================================= */
 
       const speedDecision =
         routeRequest(
@@ -817,11 +684,9 @@ export default function Home() {
       });
 
 
-      /*
-       * -------------------------------------------------------
-       * MODE — ALERT
-       * -------------------------------------------------------
-       */
+      /* -------------------------------------------------------
+         MODE — ALERT
+         ------------------------------------------------------- */
 
       if (
         result.intent ===
@@ -838,27 +703,17 @@ export default function Home() {
         );
 
 
-        const message =
-          "HIGH ALERT MODE ACTIVATED";
-
-
         setCoreState(
           "alert"
         );
 
 
         setResponse(
-          message
+          "HIGH ALERT MODE ACTIVATED"
         );
 
 
         playAlertSound();
-
-
-        rememberInteraction(
-          currentCommand,
-          message
-        );
 
 
         setTimeout(
@@ -886,11 +741,9 @@ export default function Home() {
       }
 
 
-      /*
-       * -------------------------------------------------------
-       * MODE — NORMAL
-       * -------------------------------------------------------
-       */
+      /* -------------------------------------------------------
+         MODE — NORMAL
+         ------------------------------------------------------- */
 
       if (
         result.intent ===
@@ -907,23 +760,13 @@ export default function Home() {
         );
 
 
-        const message =
-          "NORMAL MODE RESTORED";
-
-
         setCoreState(
           "idle"
         );
 
 
         setResponse(
-          message
-        );
-
-
-        rememberInteraction(
-          currentCommand,
-          message
+          "NORMAL MODE RESTORED"
         );
 
 
@@ -952,11 +795,9 @@ export default function Home() {
       }
 
 
-      /*
-       * -------------------------------------------------------
-       * SYSTEM STATUS
-       * -------------------------------------------------------
-       */
+      /* -------------------------------------------------------
+         SYSTEM STATUS
+         ------------------------------------------------------- */
 
       if (
         result.intent ===
@@ -985,12 +826,6 @@ export default function Home() {
         );
 
 
-        rememberInteraction(
-          currentCommand,
-          statusText
-        );
-
-
         setTimeout(
           () => {
             setCoreState("idle");
@@ -1003,11 +838,9 @@ export default function Home() {
       }
 
 
-      /*
-       * -------------------------------------------------------
-       * CURRENT MODE
-       * -------------------------------------------------------
-       */
+      /* -------------------------------------------------------
+         CURRENT MODE
+         ------------------------------------------------------- */
 
       if (
         result.intent ===
@@ -1036,12 +869,6 @@ export default function Home() {
         );
 
 
-        rememberInteraction(
-          currentCommand,
-          modeText
-        );
-
-
         setTimeout(
           () => {
             setCoreState("idle");
@@ -1054,11 +881,9 @@ export default function Home() {
       }
 
 
-      /*
-       * -------------------------------------------------------
-       * HELP
-       * -------------------------------------------------------
-       */
+      /* -------------------------------------------------------
+         HELP
+         ------------------------------------------------------- */
 
       if (
         result.intent ===
@@ -1085,12 +910,6 @@ export default function Home() {
         );
 
 
-        rememberInteraction(
-          currentCommand,
-          help
-        );
-
-
         setTimeout(
           () => {
             setCoreState("idle");
@@ -1103,11 +922,9 @@ export default function Home() {
       }
 
 
-      /*
-       * -------------------------------------------------------
-       * RESET
-       * -------------------------------------------------------
-       */
+      /* -------------------------------------------------------
+         RESET
+         ------------------------------------------------------- */
 
       if (
         result.intent ===
@@ -1161,11 +978,9 @@ export default function Home() {
       }
 
 
-      /*
-       * -------------------------------------------------------
-       * STOP
-       * -------------------------------------------------------
-       */
+      /* -------------------------------------------------------
+         STOP
+         ------------------------------------------------------- */
 
       if (
         result.intent ===
@@ -1189,11 +1004,9 @@ export default function Home() {
       }
 
 
-      /*
-       * =======================================================
-       * LOCAL SPEED ROUTE
-       * =======================================================
-       */
+      /* =======================================================
+         LOCAL SPEED ROUTE
+         ======================================================= */
 
       if (
         speedDecision.route ===
@@ -1202,7 +1015,7 @@ export default function Home() {
 
         const instantResponse =
           getInstantResponse(
-            currentCommand
+            speedDecision
           );
 
 
@@ -1227,12 +1040,6 @@ export default function Home() {
           );
 
 
-          rememberInteraction(
-            currentCommand,
-            instantResponse
-          );
-
-
           setTimeout(
             () => {
               setCoreState(
@@ -1248,11 +1055,9 @@ export default function Home() {
       }
 
 
-      /*
-       * =======================================================
-       * FAST / HEAVY → AI BACKEND
-       * =======================================================
-       */
+      /* =======================================================
+         FAST / HEAVY → AI BACKEND
+         ======================================================= */
 
       setIsProcessing(
         true
@@ -1281,20 +1086,9 @@ export default function Home() {
 
       try {
 
-        /*
-         * -----------------------------------------------------
-         * MEMORY-AWARE AI REQUEST
-         * -----------------------------------------------------
-         *
-         * eonApi.ts now automatically loads existing memory
-         * and sends it to the backend.
-         * -----------------------------------------------------
-         */
-
         const aiResult =
           await askEON(
-            currentCommand,
-            mode
+            currentCommand
           );
 
 
@@ -1305,18 +1099,6 @@ export default function Home() {
 
         setCoreState(
           "speaking"
-        );
-
-
-        /*
-         * -----------------------------------------------------
-         * SAVE SUCCESSFUL AI INTERACTION
-         * -----------------------------------------------------
-         */
-
-        rememberInteraction(
-          currentCommand,
-          aiResult.response
         );
 
 
@@ -1387,11 +1169,9 @@ export default function Home() {
     };
 
 
-  /*
-   * =========================================================
-   * TEXT COMMAND
-   * =========================================================
-   */
+  /* =========================================================
+     TEXT COMMAND
+     ========================================================= */
 
   const submitCommand =
     async () => {
@@ -1409,11 +1189,9 @@ export default function Home() {
     };
 
 
-  /*
-   * =========================================================
-   * VOICE
-   * =========================================================
-   */
+  /* =========================================================
+     VOICE
+     ========================================================= */
 
   const startVoice =
     () => {
@@ -1553,11 +1331,9 @@ export default function Home() {
     };
 
 
-  /*
-   * =========================================================
-   * RESET
-   * =========================================================
-   */
+  /* =========================================================
+     RESET
+     ========================================================= */
 
   const resetEON =
     () => {
@@ -1609,11 +1385,9 @@ export default function Home() {
     };
 
 
-  /*
-   * =========================================================
-   * UI
-   * =========================================================
-   */
+  /* =========================================================
+     UI
+     ========================================================= */
 
   return (
 
