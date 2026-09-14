@@ -1188,7 +1188,8 @@ export default function Home() {
         const aiResult =
           await askEON(
             currentCommand,
-            mode
+            mode,
+            destination
           );
 
 
