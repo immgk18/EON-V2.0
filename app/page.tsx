@@ -20,7 +20,7 @@ import {
   type CommandResult,
 } from "@/lib/commandEngine";
 
-import askEON from "@/lib/eonApi";
+import askThroughGateway from "@/lib/modelGateway";
 
 import {
   getInstantResponse,
@@ -1186,11 +1186,11 @@ export default function Home() {
       try {
 
         const aiResult =
-          await askEON(
-            currentCommand,
+          await askThroughGateway({
+            message: currentCommand,
             mode,
-            destination
-          );
+            destination,
+          });
 
 
         setResponse(
