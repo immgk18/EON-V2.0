@@ -1,1203 +1,165 @@
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&display=swap");
+/* =========================================================
+   EON WEB INTELLIGENCE V2 — SOURCE CARDS
+   Add this block at the END of app/globals.css.
+   ========================================================= */
 
-:root {
-  --gold: #ffd84a;
-  --gold-bright: #fff2a6;
-  --gold-dark: #a97900;
-  --cyan: #53e8ff;
-  --red: #ff304f;
-
-  --bg: #010203;
-  --panel: rgba(5, 7, 12, 0.72);
-  --border: rgba(255, 216, 74, 0.22);
-
-  --text: #f4f0df;
-  --muted: rgba(244, 240, 223, 0.52);
-}
-
-* {
+.webSources {
+  width: min(760px, 82vw);
+  max-width: 760px;
+  margin: 14px auto 0;
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html,
-body {
-  width: 100%;
-  min-height: 100%;
-  background: var(--bg);
-}
-
-body {
-  overflow: hidden;
-  color: var(--text);
-  font-family: "Orbitron", Arial, sans-serif;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  color: inherit;
-}
-
-.eon {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  min-height: 600px;
-  overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 50% 48%,
-      rgba(255, 196, 30, 0.075),
-      transparent 24%
-    ),
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(255, 216, 74, 0.025),
-      transparent 48%
-    ),
-    #010203;
-  transition: background 0.6s ease;
-}
-
-.eon.alert {
-  background:
-    radial-gradient(
-      circle at 50% 48%,
-      rgba(255, 30, 60, 0.12),
-      transparent 26%
-    ),
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(255, 30, 60, 0.035),
-      transparent 52%
-    ),
-    #010203;
-}
-
-/* =========================================================
-   STARFIELD
-   ========================================================= */
-
-.stars {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.spaceGlow {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      ellipse at center,
-      transparent 0%,
-      transparent 42%,
-      rgba(0, 0, 0, 0.32) 72%,
-      rgba(0, 0, 0, 0.82) 100%
-    );
-}
-
-/* =========================================================
-   TOP BAR
-   ========================================================= */
-
-.topBar {
-  position: absolute;
-  top: 28px;
-  left: 34px;
-  right: 34px;
-  z-index: 20;
-
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-
-  pointer-events: none;
-}
-
-.statusPanel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  padding: 10px 14px;
-
-  border: 1px solid rgba(255, 216, 74, 0.18);
-  background: rgba(3, 5, 8, 0.62);
-  backdrop-filter: blur(12px);
-
-  color: rgba(255, 242, 166, 0.82);
-  font-size: 9px;
-  letter-spacing: 2.2px;
-
-  box-shadow:
-    0 0 25px rgba(255, 216, 74, 0.035),
-    inset 0 0 20px rgba(255, 216, 74, 0.02);
-}
-
-.onlineDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ffd84a;
-
-  box-shadow:
-    0 0 6px rgba(255, 216, 74, 0.9),
-    0 0 16px rgba(255, 216, 74, 0.55);
-
-  animation: onlinePulse 1.8s ease-in-out infinite;
-}
-
-.eon.alert .onlineDot {
-  background: var(--red);
-
-  box-shadow:
-    0 0 7px rgba(255, 48, 79, 1),
-    0 0 18px rgba(255, 48, 79, 0.65);
-}
-
-@keyframes onlinePulse {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(0.9);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-}
-
-.separator {
-  opacity: 0.25;
-}
-
-.brandPanel {
-  text-align: right;
-  min-width: 340px;
-}
-
-.brandTitle {
-  color: var(--gold-bright);
-  font-size: clamp(13px, 1.15vw, 19px);
-  font-weight: 600;
-  letter-spacing: 5px;
-
-  text-shadow:
-    0 0 12px rgba(255, 216, 74, 0.32),
-    0 0 30px rgba(255, 216, 74, 0.12);
-}
-
-.brandLine {
-  width: 100%;
-  height: 1px;
-  margin: 9px 0 7px;
-
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 216, 74, 0.65)
-  );
-}
-
-.brandSub {
-  color: rgba(255, 216, 74, 0.4);
-  font-size: 7px;
-  letter-spacing: 2.3px;
-}
-
-/* =========================================================
-   SIDE TOOL COLUMNS
-   ========================================================= */
-
-.toolColumn {
-  position: absolute;
-  top: 50%;
-  z-index: 25;
-
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  transform: translateY(-50%);
-}
-
-.leftTools {
-  left: 28px;
-}
-
-.rightTools {
-  right: 28px;
-}
-
-.toolButton {
-  position: relative;
-
-  width: 112px;
-  min-height: 43px;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  padding: 10px 12px;
-
-  border: 1px solid rgba(255, 216, 74, 0.13);
-  border-radius: 2px;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 216, 74, 0.045),
-      rgba(255, 216, 74, 0.008)
-    ),
-    rgba(2, 4, 7, 0.62);
-
-  color: rgba(255, 242, 166, 0.58);
-
-  font-size: 7px;
-  letter-spacing: 1.8px;
-
-  cursor: pointer;
-
-  backdrop-filter: blur(10px);
-
-  transition:
-    color 0.25s ease,
-    border-color 0.25s ease,
-    background 0.25s ease,
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.toolButton::before {
-  content: "";
-
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  width: 2px;
-
-  background: var(--gold);
-
-  opacity: 0;
-
-  box-shadow: 0 0 12px var(--gold);
-  transition: opacity 0.25s ease;
-}
-
-.leftTools .toolButton::before {
-  left: -1px;
-}
-
-.rightTools .toolButton::before {
-  right: -1px;
-}
-
-.toolButton:hover {
-  color: var(--gold-bright);
-
-  border-color: rgba(255, 216, 74, 0.42);
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 216, 74, 0.09),
-      rgba(255, 216, 74, 0.02)
-    ),
-    rgba(2, 4, 7, 0.78);
-
-  box-shadow:
-    0 0 20px rgba(255, 216, 74, 0.06),
-    inset 0 0 18px rgba(255, 216, 74, 0.025);
-}
-
-.toolButton:hover::before {
-  opacity: 1;
-}
-
-.leftTools .toolButton:hover {
-  transform: translateX(4px);
-}
-
-.rightTools .toolButton:hover {
-  transform: translateX(-4px);
-}
-
-.toolIcon {
-  width: 15px;
-  text-align: center;
-
-  color: var(--gold);
-  font-size: 14px;
-
-  text-shadow:
-    0 0 9px rgba(255, 216, 74, 0.7);
-}
-
-/* ALERT TOOL COLORS */
-
-.eon.alert .toolButton {
-  border-color: rgba(255, 48, 79, 0.17);
-  color: rgba(255, 130, 145, 0.68);
-}
-
-.eon.alert .toolButton::before {
-  background: var(--red);
-  box-shadow: 0 0 12px var(--red);
-}
-
-.eon.alert .toolIcon {
-  color: var(--red);
-
-  text-shadow:
-    0 0 9px rgba(255, 48, 79, 0.75);
-}
-
-/* =========================================================
-   CORE AREA
-   ========================================================= */
-
-.coreArea {
-  position: absolute;
-  left: 50%;
-  top: 49%;
-
-  width: min(62vw, 760px);
-  height: min(62vw, 760px);
-
-  transform: translate(-50%, -50%);
-
   z-index: 10;
 }
 
-.energyCore {
-  position: absolute;
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
+.webSourcesHeader {
   display: flex;
   align-items: center;
   justify-content: center;
-
-  pointer-events: none;
-}
-
-.energyCanvas {
-  position: absolute;
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  display: block;
-}
-
-.coreCenter {
-  position: absolute;
-
-  width: 37%;
-  aspect-ratio: 1;
-
-  border-radius: 50%;
-
-  pointer-events: none;
-
-  background:
-    radial-gradient(
-      circle,
-      rgba(0, 0, 0, 0.98) 0%,
-      rgba(0, 0, 0, 0.96) 68%,
-      rgba(255, 216, 74, 0.015) 100%
-    );
-
-  box-shadow:
-    inset 0 0 35px rgba(255, 216, 74, 0.035),
-    0 0 40px rgba(255, 216, 74, 0.04);
-}
-
-.coreState {
-  position: absolute;
-  bottom: 19%;
-
-  color: var(--gold);
-
-  font-size: 7px;
-  letter-spacing: 3px;
-
-  opacity: 0;
-
-  transition: opacity 0.3s ease;
-
-  text-shadow:
-    0 0 10px currentColor;
-}
-
-.energyCore.state-listening .coreState,
-.energyCore.state-thinking .coreState,
-.energyCore.state-speaking .coreState,
-.energyCore.state-alert .coreState {
-  opacity: 0.75;
-}
-
-.energyCore.state-listening .coreState {
-  animation: stateTextPulse 0.9s ease-in-out infinite;
-}
-
-.energyCore.state-thinking .coreState {
-  animation: stateTextPulse 0.6s ease-in-out infinite;
-}
-
-.energyCore.state-speaking .coreState {
-  animation: stateTextPulse 1s ease-in-out infinite;
-}
-
-.energyCore.state-alert .coreState {
-  color: var(--red);
-  animation: stateTextPulse 0.45s ease-in-out infinite;
-}
-
-@keyframes stateTextPulse {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-
-  50% {
-    opacity: 1;
-  }
-}
-
-/* =========================================================
-   RESPONSE
-   ========================================================= */
-
-.response {
-  position: absolute;
-
-  left: 50%;
-  bottom: 8%;
-
-  transform: translateX(-50%);
-
-  max-width: 75%;
-
-  padding: 9px 15px;
-
-  border: 1px solid rgba(255, 216, 74, 0.12);
-
-  background: rgba(1, 3, 5, 0.55);
-  backdrop-filter: blur(8px);
-
-  color: rgba(255, 232, 126, 0.7);
-
-  font-size: 7px;
-  line-height: 1.6;
-  letter-spacing: 1.5px;
-
-  text-align: center;
-
-  white-space: nowrap;
-
-  animation: responseAppear 0.3s ease-out;
-}
-
-@keyframes responseAppear {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-.eon.alert .response {
-  border-color: rgba(255, 48, 79, 0.22);
-  color: rgba(255, 120, 140, 0.85);
-
-  box-shadow:
-    0 0 20px rgba(255, 48, 79, 0.05);
-}
-
-/* =========================================================
-   COMMAND AREA
-   ========================================================= */
-
-.bottomArea {
-  position: absolute;
-
-  left: 50%;
-  bottom: 28px;
-
-  width: min(620px, 65vw);
-
-  transform: translateX(-50%);
-
-  z-index: 30;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 13px;
-}
-
-.commandBar {
-  width: 100%;
-  height: 48px;
-
-  display: flex;
-  align-items: center;
-
-  border: 1px solid rgba(255, 216, 74, 0.2);
-
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 216, 74, 0.035),
-      rgba(255, 216, 74, 0.01)
-    ),
-    rgba(2, 4, 7, 0.76);
-
-  box-shadow:
-    0 0 25px rgba(255, 216, 74, 0.035),
-    inset 0 0 25px rgba(255, 216, 74, 0.015);
-
-  backdrop-filter: blur(15px);
-
-  transition:
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.commandBar:focus-within {
-  border-color: rgba(255, 216, 74, 0.45);
-
-  box-shadow:
-    0 0 25px rgba(255, 216, 74, 0.08),
-    inset 0 0 25px rgba(255, 216, 74, 0.025);
-}
-
-.commandWave {
-  width: 48px;
-
-  display: flex;
-  justify-content: center;
-
-  color: var(--gold);
-
-  font-size: 10px;
-  letter-spacing: -2px;
-
-  text-shadow:
-    0 0 10px rgba(255, 216, 74, 0.8);
-}
-
-.commandBar input {
-  flex: 1;
-
-  height: 100%;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-
-  color: rgba(255, 245, 196, 0.9);
-
-  font-family: "Orbitron", Arial, sans-serif;
-  font-size: 8px;
-  letter-spacing: 1.3px;
-}
-
-.commandBar input::placeholder {
-  color: rgba(255, 216, 74, 0.28);
-}
-
-.sendButton {
-  width: 48px;
-  height: 100%;
-
-  border: 0;
-  border-left: 1px solid rgba(255, 216, 74, 0.12);
-
-  background: transparent;
-
-  color: var(--gold);
-
-  cursor: pointer;
-
-  font-size: 16px;
-
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    text-shadow 0.2s ease;
-}
-
-.sendButton:hover {
-  background: rgba(255, 216, 74, 0.07);
-
-  color: var(--gold-bright);
-
-  text-shadow:
-    0 0 12px var(--gold);
-}
-
-/* =========================================================
-   BOTTOM CONTROLS
-   ========================================================= */
-
-.bottomControls {
-  display: flex;
-  align-items: center;
   gap: 10px;
-}
+  margin-bottom: 9px;
 
-.controlButton {
-  min-width: 130px;
-  height: 30px;
-
-  padding: 0 14px;
-
-  border: 1px solid rgba(255, 216, 74, 0.15);
-
-  background: rgba(2, 4, 7, 0.58);
-
-  color: rgba(255, 216, 74, 0.52);
-
-  font-size: 7px;
-  letter-spacing: 1.5px;
-
-  cursor: pointer;
-
-  backdrop-filter: blur(8px);
-
-  transition:
-    border-color 0.25s ease,
-    color 0.25s ease,
-    background 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.controlButton:hover {
-  border-color: rgba(255, 216, 74, 0.42);
-
-  color: var(--gold-bright);
-
-  background: rgba(255, 216, 74, 0.045);
-
-  box-shadow:
-    0 0 18px rgba(255, 216, 74, 0.06);
-}
-
-.eon.alert .controlButton {
-  border-color: rgba(255, 48, 79, 0.22);
-  color: rgba(255, 110, 130, 0.72);
-}
-
-.eon.alert .controlButton:hover {
-  border-color: rgba(255, 48, 79, 0.5);
-
-  color: #ff9aaa;
-
-  background: rgba(255, 48, 79, 0.05);
-
-  box-shadow:
-    0 0 18px rgba(255, 48, 79, 0.08);
-}
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-
-.footer {
-  color: rgba(255, 216, 74, 0.22);
-
-  font-size: 6px;
-  letter-spacing: 2.2px;
-
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
   text-align: center;
-}
-
-/* =========================================================
-   HIGH ALERT TRANSITION
-   ========================================================= */
-
-.alertBurst {
-  position: absolute;
-
-  left: 50%;
-  top: 50%;
-
-  width: 18%;
-  aspect-ratio: 1;
-
-  border-radius: 50%;
-
-  pointer-events: none;
-
-  z-index: 50;
-
-  transform:
-    translate(-50%, -50%)
-    scale(0.2);
-
-  opacity: 0;
-}
-
-.enteringAlert {
-  border: 2px solid rgba(255, 48, 79, 0.95);
-
-  box-shadow:
-    0 0 15px rgba(255, 48, 79, 0.95),
-    0 0 45px rgba(255, 48, 79, 0.7),
-    0 0 100px rgba(255, 48, 79, 0.35);
-
-  animation:
-    alertExpansion
-    1s
-    cubic-bezier(0.15, 0.8, 0.25, 1)
-    forwards;
-}
-
-.enteringAlert::before,
-.enteringAlert::after {
-  content: "";
-
-  position: absolute;
-  inset: -20%;
-
-  border-radius: 50%;
-
-  border: 1px solid rgba(255, 48, 79, 0.6);
-
-  animation:
-    alertWave
-    0.9s
-    ease-out
-    forwards;
-}
-
-.enteringAlert::after {
-  inset: -50%;
-
-  border-color: rgba(255, 48, 79, 0.25);
-
-  animation-delay: 0.12s;
-}
-
-.leavingAlert {
-  border: 2px solid rgba(255, 216, 74, 0.9);
-
-  box-shadow:
-    0 0 20px rgba(255, 216, 74, 0.8),
-    0 0 65px rgba(255, 216, 74, 0.4),
-    0 0 110px rgba(255, 190, 0, 0.2);
-
-  animation:
-    normalExpansion
-    0.7s
-    ease-out
-    forwards;
-}
-
-@keyframes alertExpansion {
-  0% {
-    transform:
-      translate(-50%, -50%)
-      scale(0.15);
-    opacity: 0;
-  }
-
-  10% {
-    opacity: 1;
-  }
-
-  30% {
-    transform:
-      translate(-50%, -50%)
-      scale(0.8);
-    opacity: 0.95;
-  }
-
-  55% {
-    transform:
-      translate(-50%, -50%)
-      scale(2.5);
-    opacity: 0.7;
-  }
-
-  100% {
-    transform:
-      translate(-50%, -50%)
-      scale(5.5);
-    opacity: 0;
-  }
-}
-
-@keyframes alertWave {
-  0% {
-    transform: scale(0.15);
-    opacity: 0.95;
-  }
-
-  35% {
-    opacity: 0.65;
-  }
-
-  100% {
-    transform: scale(2.2);
-    opacity: 0;
-  }
-}
-
-@keyframes normalExpansion {
-  0% {
-    transform:
-      translate(-50%, -50%)
-      scale(0.15);
-    opacity: 0;
-  }
-
-  20% {
-    transform:
-      translate(-50%, -50%)
-      scale(0.8);
-    opacity: 0.9;
-  }
-
-  50% {
-    transform:
-      translate(-50%, -50%)
-      scale(2.2);
-    opacity: 0.55;
-  }
-
-  100% {
-    transform:
-      translate(-50%, -50%)
-      scale(4.5);
-    opacity: 0;
-  }
-}
-
-/* =========================================================
-   ALERT MODE ATMOSPHERE
-   ========================================================= */
-
-.eon.alert .spaceGlow {
-  background:
-    radial-gradient(
-      ellipse at center,
-      transparent 0%,
-      transparent 38%,
-      rgba(255, 0, 30, 0.035) 65%,
-      rgba(0, 0, 0, 0.82) 100%
-    );
-}
-
-.eon.alert .brandTitle {
-  color: #ff8094;
-
-  text-shadow:
-    0 0 12px rgba(255, 48, 79, 0.55),
-    0 0 35px rgba(255, 48, 79, 0.18);
-}
-
-.eon.alert .brandLine {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 48, 79, 0.7)
-  );
-}
-
-.eon.alert .brandSub,
-.eon.alert .footer {
-  color: rgba(255, 48, 79, 0.32);
-}
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 900px) {
-  .topBar {
-    left: 18px;
-    right: 18px;
-    top: 18px;
-  }
-
-  .brandTitle {
-    font-size: 11px;
-    letter-spacing: 3px;
-  }
-
-  .brandSub {
-    font-size: 6px;
-    letter-spacing: 1.3px;
-  }
-
-  .toolButton {
-    width: 96px;
-  }
-
-  .leftTools {
-    left: 12px;
-  }
-
-  .rightTools {
-    right: 12px;
-  }
-
-  .coreArea {
-    width: min(72vw, 650px);
-    height: min(72vw, 650px);
-  }
-
-  .bottomArea {
-    width: min(600px, 72vw);
-  }
-}
-
-@media (max-width: 650px) {
-  body {
-    overflow: hidden;
-  }
-
-  .eon {
-    min-height: 560px;
-  }
-
-  .topBar {
-    top: 14px;
-    left: 12px;
-    right: 12px;
-  }
-
-  .statusPanel {
-    padding: 8px 9px;
-    font-size: 7px;
-    letter-spacing: 1.3px;
-  }
-
-  .brandPanel {
-    min-width: 0;
-    max-width: 52%;
-  }
-
-  .brandTitle {
-    font-size: 8px;
-    letter-spacing: 2px;
-  }
-
-  .brandSub {
-    display: none;
-  }
-
-  .leftTools,
-  .rightTools {
-    top: auto;
-    bottom: 115px;
-
-    transform: none;
-
-    gap: 6px;
-  }
-
-  .leftTools {
-    left: 8px;
-  }
-
-  .rightTools {
-    right: 8px;
-  }
-
-  .toolButton {
-    width: 70px;
-    min-height: 34px;
-
-    padding: 7px 6px;
-
-    font-size: 5px;
-    letter-spacing: 1px;
-  }
-
-  .toolIcon {
-    font-size: 11px;
-    width: 12px;
-  }
-
-  .coreArea {
-    top: 46%;
-
-    width: 88vw;
-    height: 88vw;
-  }
-
-  .response {
-    max-width: 65%;
-
-    white-space: normal;
-
-    font-size: 5px;
-  }
-
-  .bottomArea {
-    bottom: 13px;
-
-    width: calc(100vw - 110px);
-
-    gap: 8px;
-  }
-
-  .commandBar {
-    height: 42px;
-  }
-
-  .commandWave {
-    width: 34px;
-    font-size: 8px;
-  }
-
-  .commandBar input {
-    font-size: 6px;
-    letter-spacing: 0.8px;
-  }
-
-  .sendButton {
-    width: 38px;
-    font-size: 13px;
-  }
-
-  .bottomControls {
-    gap: 5px;
-  }
-
-  .controlButton {
-    min-width: 90px;
-    height: 26px;
-
-    padding: 0 8px;
-
-    font-size: 5px;
-    letter-spacing: 0.8px;
-  }
-
-  .footer {
-    display: none;
-  }
-}
-
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* =========================================================
-   EON RESPONSE TEXT — READABLE WRAPPING
-   ========================================================= */
-
-.response {
-  position: relative;
-
-  width: min(760px, 82vw);
-  max-width: 760px;
-
-  margin: 18px auto 0;
-  padding: 14px 20px;
-
-  box-sizing: border-box;
-
-  text-align: center;
-
-  font-size: 13px;
-  line-height: 1.7;
-  letter-spacing: 0.08em;
-
-  /* IMPORTANT:
-     Prevent long EON responses from staying
-     as one horizontal line.
-  */
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-
-  /* Keep very long responses contained */
-  max-height: 150px;
-  overflow-y: auto;
-
-  border: 1px solid rgba(255, 220, 80, 0.18);
-  border-radius: 10px;
-
-  background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(8px);
 
   text-shadow:
     0 0 8px rgba(255, 220, 80, 0.35);
-
-  z-index: 10;
 }
 
-
-/* =========================================================
-   RESPONSE SCROLLBAR
-   ========================================================= */
-
-.response::-webkit-scrollbar {
-  width: 4px;
+.webSourcesLine {
+  height: 1px;
+  width: 42px;
+  background: rgba(255, 220, 80, 0.22);
 }
 
-.response::-webkit-scrollbar-track {
+.webSourcesList {
+  display: grid;
+  gap: 7px;
+  max-height: 155px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.webSourceCard {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  width: 100%;
+  min-width: 0;
+
+  box-sizing: border-box;
+  padding: 9px 11px;
+
+  color: inherit;
+  text-decoration: none;
+
+  border: 1px solid rgba(255, 220, 80, 0.14);
+  border-radius: 8px;
+
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.webSourceCard:hover {
+  border-color: rgba(255, 220, 80, 0.42);
+  background: rgba(255, 220, 80, 0.05);
+  transform: translateY(-1px);
+}
+
+.webSourceIndex {
+  flex: 0 0 auto;
+
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
+}
+
+.webSourceContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  min-width: 0;
+  flex: 1;
+}
+
+.webSourceTitle {
+  overflow: hidden;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.webSourceUrl {
+  overflow: hidden;
+
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.webSourceArrow {
+  flex: 0 0 auto;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.webGroundedBadge {
+  margin-top: 8px;
+
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  text-align: center;
+  opacity: 0.5;
+}
+
+.webSourcesList::-webkit-scrollbar {
+  width: 3px;
+}
+
+.webSourcesList::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.response::-webkit-scrollbar-thumb {
-  background: rgba(255, 220, 80, 0.35);
+.webSourcesList::-webkit-scrollbar-thumb {
+  background: rgba(255, 220, 80, 0.25);
   border-radius: 10px;
 }
 
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
 @media (max-width: 700px) {
-  .response {
+  .webSources {
     width: 88vw;
     max-width: 88vw;
+    margin-top: 10px;
+  }
 
-    padding: 12px 14px;
+  .webSourceCard {
+    padding: 8px 9px;
+  }
 
-    font-size: 11px;
-    line-height: 1.6;
-    letter-spacing: 0.05em;
+  .webSourceTitle {
+    font-size: 9px;
+  }
 
-    max-height: 130px;
+  .webSourceUrl {
+    font-size: 7px;
+  }
+
+  .webSourcesList {
+    max-height: 125px;
   }
 }
