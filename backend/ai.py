@@ -4,17 +4,12 @@ EON 2.0 — AI ENGINE
 Enhanced Operations Network
 ============================================================
 
-Connects the EON Intelligence Core to Gemini.
+Connects EON Brain to Gemini.
 
-Flow:
-
-User Request
-    ↓
-EON Brain Context
-    ↓
-Gemini AI
-    ↓
-EON Response
+Memory Integration v1
+------------------------------------------------------------
+The frontend supplies a memory_context string with each
+request. This file passes that context into the EON brain.
 ============================================================
 """
 
@@ -23,68 +18,133 @@ import time
 
 from google import genai
 
-from brain import (
-    build_context,
-)
+from brain import build_context
 
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
 
 MODEL = os.getenv(
     "EON_AI_MODEL",
-    "gemini-3.8-flash",
+    "gemini-2.5-flash-lite",
 )
 
-
 MAX_RETRIES = 3
-
 RETRY_DELAY = 3
 
 
-def get_client() -> genai.Client:
-    """
-    Create the Gemini client using the server-side API key.
-    """
+# ============================================================
+# GEMINI CLIENT
+# ============================================================
 
-    api_key = os.getenv(
-        "GEMINI_API_KEY"
+api_key = os.getenv(
+    "GEMINI_API_KEY"
+)
+
+
+if not api_key:
+    raise RuntimeError(
+        "GEMINI_API_KEY environment variable is not configured."
     )
 
 
-    if not api_key:
-
-        raise RuntimeError(
-            "GEMINI_API_KEY is not configured."
-        )
+client = genai.Client(
+    api_key=api_key
+)
 
 
-    return genai.Client(
-        api_key=api_key
+# ============================================================
+# TEMPORARY ERROR DETECTION
+# ============================================================
+
+def is_temporary_error(
+    error: Exception,
+) -> bool:
+
+    message = str(
+        error
+    ).lower()
+
+    temporary_patterns = [
+        "503",
+        "unavailable",
+        "high demand",
+        "429",
+        "rate limit",
+        "temporarily",
+        "resource exhausted",
+        "overloaded",
+    ]
+
+    return any(
+        pattern in message
+        for pattern in temporary_patterns
     )
 
 
-def ask_eon(
+# ============================================================
+# ASK EON
+# ============================================================
+
+async def ask_eon(
     message: str,
     mode: str = "NORMAL",
-) -> str:
-    """
-    Send a request through the EON Intelligence Core
-    and return the Gemini response.
-    """
+    memory_context: str = "",
+):
 
-    client = get_client()
-
-
-    context = build_context(
-        message=message,
-        mode=mode,
+    cleaned_message = (
+        message.strip()
     )
 
+
+    if not cleaned_message:
+
+        return {
+            "response":
+                "No command received.",
+
+            "status":
+                "empty",
+
+            "model":
+                MODEL,
+
+            "mode":
+                mode,
+        }
+
+
+    normalized_mode = (
+        mode or "NORMAL"
+    ).strip().upper()
+
+
+    cleaned_memory = (
+        memory_context or ""
+    ).strip()
+
+
+    # ========================================================
+    # BUILD EON CONTEXT
+    # ========================================================
+
+    context = build_context(
+        message=cleaned_message,
+        mode=normalized_mode,
+        memory_context=cleaned_memory,
+    )
+
+
+    # ========================================================
+    # GEMINI REQUEST
+    # ========================================================
 
     last_error = None
 
 
     for attempt in range(
-        1,
-        MAX_RETRIES + 1
+        MAX_RETRIES
     ):
 
         try:
@@ -97,21 +157,36 @@ def ask_eon(
             )
 
 
-            output = (
-                response.text or ""
+            response_text = (
+                getattr(
+                    response,
+                    "text",
+                    None,
+                )
+                or ""
             ).strip()
 
 
-            if not output:
+            if not response_text:
 
-                return (
-                    "EON received the request "
-                    "but Gemini returned an "
-                    "empty response."
+                response_text = (
+                    "EON received an empty AI response."
                 )
 
 
-            return output
+            return {
+                "response":
+                    response_text,
+
+                "status":
+                    "success",
+
+                "model":
+                    MODEL,
+
+                "mode":
+                    normalized_mode,
+            }
 
 
         except Exception as error:
@@ -119,59 +194,46 @@ def ask_eon(
             last_error = error
 
 
-            print(
-                f"EON AI attempt "
-                f"{attempt}/{MAX_RETRIES} failed: "
-                f"{error}"
-            )
-
-
-            error_text = (
-                str(error).lower()
-            )
-
-
-            temporary_error = (
-                "503" in error_text
-                or "unavailable" in error_text
-                or "high demand" in error_text
-                or "429" in error_text
-                or "rate limit" in error_text
-                or "temporarily" in error_text
-            )
-
-
-            if not temporary_error:
-
-                raise
-
-
             if (
-                attempt <
-                MAX_RETRIES
+                is_temporary_error(
+                    error
+                )
+                and attempt <
+                MAX_RETRIES - 1
             ):
 
-                wait_time = (
-                    RETRY_DELAY *
-                    attempt
-                )
-
-
                 print(
-                    "EON AI temporarily "
-                    "unavailable. "
-                    f"Retrying in "
-                    f"{wait_time} seconds..."
+                    f"EON AI temporary error "
+                    f"(attempt {attempt + 1}/"
+                    f"{MAX_RETRIES}): "
+                    f"{error}"
                 )
 
 
                 time.sleep(
-                    wait_time
+                    RETRY_DELAY
                 )
+
+                continue
+
+
+            print(
+                "EON AI ERROR:",
+                error,
+            )
+
+            break
+
+
+    # ========================================================
+    # FINAL FAILURE
+    # ========================================================
+
+    if last_error:
+
+        raise last_error
 
 
     raise RuntimeError(
-        "Gemini AI is temporarily "
-        "unavailable after multiple "
-        "retry attempts."
-    ) from last_error
+        "EON AI request failed."
+    )
