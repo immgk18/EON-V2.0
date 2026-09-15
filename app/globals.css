@@ -1,26 +1,1057 @@
 /* =========================================================
-   EON WEB INTELLIGENCE V2 — SOURCE CARDS
-   Add this block at the END of app/globals.css.
+   EON 2.0 — GLOBAL INTERFACE
+   Enhanced Operations Network
+   ========================================================= */
+
+:root {
+  --eon-gold: #ffd84d;
+  --eon-gold-bright: #fff0a0;
+  --eon-gold-soft: rgba(255, 216, 77, 0.55);
+  --eon-gold-faint: rgba(255, 216, 77, 0.12);
+
+  --eon-black: #000000;
+  --eon-space: #030305;
+  --eon-panel: rgba(5, 5, 8, 0.68);
+  --eon-border: rgba(255, 216, 77, 0.18);
+
+  --eon-text: #f5e8a8;
+  --eon-muted: rgba(245, 232, 168, 0.52);
+
+  --eon-alert: #ff3b30;
+  --eon-alert-bright: #ff665c;
+}
+
+/* =========================================================
+   RESET
+   ========================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: #000;
+}
+
+body {
+  min-height: 100vh;
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(255, 205, 55, 0.055) 0%,
+      rgba(255, 205, 55, 0.018) 28%,
+      transparent 62%
+    ),
+    #000;
+
+  color: var(--eon-gold);
+
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 1px solid rgba(255, 230, 120, 0.7);
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   MAIN EON SHELL
+   ========================================================= */
+
+.eon {
+  position: relative;
+
+  width: 100vw;
+  height: 100vh;
+
+  min-width: 320px;
+  min-height: 520px;
+
+  overflow: hidden;
+
+  isolation: isolate;
+
+  background:
+    radial-gradient(
+      circle at 50% 46%,
+      rgba(255, 210, 60, 0.075) 0%,
+      rgba(255, 210, 60, 0.025) 18%,
+      transparent 48%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(255, 190, 40, 0.035),
+      transparent 45%
+    ),
+    #000;
+}
+
+/* =========================================================
+   SPACE BACKGROUND
+   ========================================================= */
+
+.eon::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  z-index: -5;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      ellipse at 50% 48%,
+      transparent 0%,
+      rgba(0, 0, 0, 0.08) 40%,
+      rgba(0, 0, 0, 0.7) 100%
+    );
+}
+
+.eon::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  z-index: 20;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 210, 70, 0.015),
+      transparent 18%,
+      transparent 82%,
+      rgba(255, 210, 70, 0.015)
+    );
+
+  box-shadow:
+    inset 0 0 120px rgba(0, 0, 0, 0.75);
+}
+
+.stars {
+  position: fixed;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  z-index: -4;
+
+  pointer-events: none;
+
+  display: block;
+}
+
+/* =========================================================
+   SPACE GLOW
+   ========================================================= */
+
+.spaceGlow {
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  width: min(70vw, 900px);
+  height: min(70vw, 900px);
+
+  transform: translate(-50%, -50%);
+
+  border-radius: 50%;
+
+  pointer-events: none;
+
+  z-index: -3;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 215, 70, 0.07) 0%,
+      rgba(255, 215, 70, 0.025) 28%,
+      transparent 68%
+    );
+
+  filter: blur(8px);
+
+  animation: spaceGlowPulse 5s ease-in-out infinite;
+}
+
+@keyframes spaceGlowPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+/* =========================================================
+   ALERT MODE
+   ========================================================= */
+
+.eon.alert {
+  --eon-gold: #ff6a5f;
+  --eon-gold-bright: #ffb0aa;
+  --eon-gold-soft: rgba(255, 70, 60, 0.6);
+  --eon-gold-faint: rgba(255, 70, 60, 0.12);
+
+  --eon-border: rgba(255, 75, 65, 0.2);
+
+  background:
+    radial-gradient(
+      circle at 50% 46%,
+      rgba(255, 45, 35, 0.08),
+      transparent 48%
+    ),
+    #000;
+}
+
+.eon.alert .spaceGlow {
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 45, 35, 0.1),
+      rgba(255, 45, 35, 0.025) 30%,
+      transparent 68%
+    );
+}
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+
+.topBar {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+
+  min-height: 90px;
+
+  padding:
+    24px
+    30px
+    0
+    30px;
+
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  z-index: 30;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   STATUS PANEL
+   ========================================================= */
+
+.statusPanel {
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 8px 13px;
+
+  border: 1px solid rgba(255, 216, 77, 0.13);
+  border-radius: 7px;
+
+  background: rgba(0, 0, 0, 0.34);
+
+  backdrop-filter: blur(10px);
+
+  color: var(--eon-text);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 0.16em;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+
+  box-shadow:
+    0 0 20px rgba(255, 210, 60, 0.025);
+}
+
+.onlineDot {
+  width: 6px;
+  height: 6px;
+
+  flex: 0 0 auto;
+
+  border-radius: 50%;
+
+  background: #7dff7a;
+
+  box-shadow:
+    0 0 5px #7dff7a,
+    0 0 12px rgba(125, 255, 122, 0.5);
+
+  animation: onlinePulse 2s ease-in-out infinite;
+}
+
+@keyframes onlinePulse {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.separator {
+  opacity: 0.25;
+}
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+
+.brandPanel {
+  text-align: right;
+
+  max-width: 55vw;
+}
+
+.brandTitle {
+  color: var(--eon-gold-bright);
+
+  font-size: clamp(11px, 1.1vw, 15px);
+
+  font-weight: 500;
+
+  letter-spacing: 0.42em;
+
+  text-transform: uppercase;
+
+  text-shadow:
+    0 0 8px rgba(255, 216, 77, 0.35);
+}
+
+.brandLine {
+  width: 100%;
+  height: 1px;
+
+  margin:
+    8px
+    0
+    7px
+    auto;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 216, 77, 0.55)
+    );
+}
+
+.brandSub {
+  color: var(--eon-muted);
+
+  font-size: 7px;
+
+  letter-spacing: 0.23em;
+
+  text-transform: uppercase;
+}
+
+/* =========================================================
+   SIDE TOOL COLUMNS
+   ========================================================= */
+
+.toolColumn {
+  position: absolute;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 9px;
+
+  z-index: 35;
+}
+
+.leftTools {
+  left: 22px;
+}
+
+.rightTools {
+  right: 22px;
+}
+
+/* =========================================================
+   TOOL BUTTON
+   ========================================================= */
+
+.toolButton {
+  position: relative;
+
+  width: 104px;
+  min-height: 42px;
+
+  padding: 9px 11px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: flex-start;
+
+  gap: 9px;
+
+  border: 1px solid rgba(255, 216, 77, 0.13);
+  border-radius: 8px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 216, 77, 0.055),
+      rgba(0, 0, 0, 0.42)
+    );
+
+  color: rgba(255, 232, 145, 0.78);
+
+  backdrop-filter: blur(12px);
+
+  cursor: pointer;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  letter-spacing: 0.14em;
+
+  text-align: left;
+
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.toolButton:hover {
+  border-color: rgba(255, 216, 77, 0.42);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 216, 77, 0.11),
+      rgba(0, 0, 0, 0.5)
+    );
+
+  color: var(--eon-gold-bright);
+
+  transform: translateX(3px);
+
+  box-shadow:
+    0 0 18px rgba(255, 216, 77, 0.07);
+}
+
+.rightTools .toolButton:hover {
+  transform: translateX(-3px);
+}
+
+.toolIcon {
+  width: 15px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  color: var(--eon-gold);
+
+  font-size: 14px;
+
+  text-shadow:
+    0 0 8px rgba(255, 216, 77, 0.5);
+}
+
+/* =========================================================
+   CORE AREA
+   ========================================================= */
+
+.coreArea {
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  width: min(700px, 62vw);
+  height: min(700px, 62vh);
+
+  transform: translate(-50%, -52%);
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  z-index: 10;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   RESPONSE
+   ========================================================= */
+
+.response {
+  position: absolute;
+
+  left: 50%;
+
+  bottom: 6%;
+
+  width: min(680px, 76vw);
+
+  transform: translateX(-50%);
+
+  padding: 10px 18px;
+
+  border-top: 1px solid rgba(255, 216, 77, 0.14);
+  border-bottom: 1px solid rgba(255, 216, 77, 0.08);
+
+  color: var(--eon-gold-bright);
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 216, 77, 0.035),
+      transparent
+    );
+
+  text-align: center;
+
+  font-size: clamp(9px, 1vw, 12px);
+
+  font-weight: 600;
+
+  line-height: 1.6;
+
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+
+  text-shadow:
+    0 0 8px rgba(255, 216, 77, 0.25);
+
+  animation: responseAppear 220ms ease-out;
+
+  pointer-events: none;
+
+  z-index: 25;
+}
+
+@keyframes responseAppear {
+  from {
+    opacity: 0;
+    transform:
+      translateX(-50%)
+      translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateX(-50%)
+      translateY(0);
+  }
+}
+
+/* =========================================================
+   SPEED ENGINE
+   ========================================================= */
+
+.speedStatus {
+  position: absolute;
+
+  left: 50%;
+
+  bottom: 1.5%;
+
+  transform: translateX(-50%);
+
+  color: rgba(255, 216, 77, 0.38);
+
+  font-size: 7px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.2em;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   ALERT BURST
+   ========================================================= */
+
+.alertBurst {
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  width: 80px;
+  height: 80px;
+
+  transform: translate(-50%, -50%);
+
+  border: 1px solid var(--eon-gold);
+
+  border-radius: 50%;
+
+  pointer-events: none;
+
+  z-index: 40;
+
+  opacity: 0;
+
+  animation:
+    eonBurst 1s ease-out
+    forwards;
+}
+
+.alertBurst::before,
+.alertBurst::after {
+  content: "";
+
+  position: absolute;
+
+  inset: -1px;
+
+  border: 1px solid var(--eon-gold);
+
+  border-radius: 50%;
+
+  opacity: 0.5;
+}
+
+.alertBurst::before {
+  animation:
+    eonBurstRing 0.9s ease-out
+    forwards;
+}
+
+.alertBurst::after {
+  animation:
+    eonBurstRing 0.65s ease-out
+    0.08s
+    forwards;
+}
+
+.enteringAlert {
+  --eon-gold: #ff4035;
+}
+
+.leavingAlert {
+  --eon-gold: #ffd84d;
+}
+
+@keyframes eonBurst {
+  0% {
+    width: 40px;
+    height: 40px;
+
+    opacity: 0.9;
+  }
+
+  100% {
+    width: 75vw;
+    height: 75vw;
+
+    opacity: 0;
+  }
+}
+
+@keyframes eonBurstRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(5);
+    opacity: 0;
+  }
+}
+
+/* =========================================================
+   COMMAND AREA
+   ========================================================= */
+
+.bottomArea {
+  position: absolute;
+
+  left: 50%;
+  bottom: 20px;
+
+  width: min(680px, 72vw);
+
+  transform: translateX(-50%);
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 12px;
+
+  z-index: 40;
+}
+
+/* =========================================================
+   COMMAND BAR
+   ========================================================= */
+
+.commandBar {
+  width: 100%;
+
+  min-height: 50px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 5px 7px 5px 14px;
+
+  border: 1px solid rgba(255, 216, 77, 0.2);
+
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 216, 77, 0.045),
+      rgba(0, 0, 0, 0.65)
+    );
+
+  backdrop-filter: blur(16px);
+
+  box-shadow:
+    0 0 30px rgba(255, 216, 77, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.commandBar:focus-within {
+  border-color: rgba(255, 216, 77, 0.42);
+
+  box-shadow:
+    0 0 35px rgba(255, 216, 77, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.commandWave {
+  width: 38px;
+
+  flex: 0 0 auto;
+
+  color: var(--eon-gold);
+
+  font-size: 9px;
+
+  letter-spacing: 0.16em;
+
+  text-align: center;
+
+  opacity: 0.75;
+
+  animation: commandWavePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes commandWavePulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.commandBar input {
+  width: 100%;
+  min-width: 0;
+
+  height: 38px;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: var(--eon-gold-bright);
+
+  font-size: 11px;
+
+  letter-spacing: 0.08em;
+}
+
+.commandBar input::placeholder {
+  color: rgba(255, 216, 77, 0.35);
+
+  text-transform: uppercase;
+}
+
+.commandBar input:disabled {
+  opacity: 0.55;
+
+  cursor: wait;
+}
+
+/* =========================================================
+   SEND BUTTON
+   ========================================================= */
+
+.sendButton {
+  width: 38px;
+  height: 38px;
+
+  flex: 0 0 auto;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 216, 77, 0.2);
+
+  border-radius: 8px;
+
+  background:
+    rgba(255, 216, 77, 0.055);
+
+  color: var(--eon-gold);
+
+  cursor: pointer;
+
+  font-size: 17px;
+
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.sendButton:hover:not(:disabled) {
+  background:
+    rgba(255, 216, 77, 0.13);
+
+  border-color:
+    rgba(255, 216, 77, 0.5);
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 0 18px rgba(255, 216, 77, 0.1);
+}
+
+.sendButton:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.sendButton:disabled {
+  opacity: 0.35;
+
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   BOTTOM CONTROLS
+   ========================================================= */
+
+.bottomControls {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+}
+
+.controlButton {
+  min-width: 126px;
+
+  padding: 8px 13px;
+
+  border: 1px solid rgba(255, 216, 77, 0.13);
+
+  border-radius: 7px;
+
+  background:
+    rgba(0, 0, 0, 0.38);
+
+  color: rgba(255, 226, 120, 0.68);
+
+  backdrop-filter: blur(10px);
+
+  cursor: pointer;
+
+  font-size: 8px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.15em;
+
+  text-transform: uppercase;
+
+  transition:
+    border-color 180ms ease,
+    color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.controlButton:hover {
+  border-color:
+    rgba(255, 216, 77, 0.4);
+
+  color:
+    var(--eon-gold-bright);
+
+  background:
+    rgba(255, 216, 77, 0.055);
+
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.footer {
+  color: rgba(255, 216, 77, 0.25);
+
+  font-size: 6px;
+
+  font-weight: 600;
+
+  letter-spacing: 0.25em;
+
+  text-align: center;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   WEB INTELLIGENCE — SOURCE CARDS
    ========================================================= */
 
 .webSources {
+  position: absolute;
+
+  left: 50%;
+
+  bottom: -22%;
+
   width: min(760px, 82vw);
+
   max-width: 760px;
-  margin: 14px auto 0;
+
+  transform: translateX(-50%);
+
   box-sizing: border-box;
-  z-index: 10;
+
+  z-index: 45;
+
+  pointer-events: auto;
 }
 
 .webSourcesHeader {
   display: flex;
+
   align-items: center;
   justify-content: center;
+
   gap: 10px;
+
   margin-bottom: 9px;
 
+  color: var(--eon-gold);
+
   font-size: 9px;
+
   font-weight: 700;
+
   letter-spacing: 0.22em;
+
   text-align: center;
 
   text-shadow:
@@ -28,37 +1059,53 @@
 }
 
 .webSourcesLine {
-  height: 1px;
   width: 42px;
-  background: rgba(255, 220, 80, 0.22);
+  height: 1px;
+
+  background:
+    rgba(255, 220, 80, 0.22);
 }
 
 .webSourcesList {
   display: grid;
+
   gap: 7px;
+
   max-height: 155px;
+
   overflow-y: auto;
+
   padding-right: 3px;
 }
 
 .webSourceCard {
   display: flex;
+
   align-items: center;
+
   gap: 11px;
 
   width: 100%;
+
   min-width: 0;
 
-  box-sizing: border-box;
   padding: 9px 11px;
 
+  box-sizing: border-box;
+
   color: inherit;
+
   text-decoration: none;
 
-  border: 1px solid rgba(255, 220, 80, 0.14);
+  border:
+    1px solid
+    rgba(255, 220, 80, 0.14);
+
   border-radius: 8px;
 
-  background: rgba(0, 0, 0, 0.3);
+  background:
+    rgba(0, 0, 0, 0.3);
+
   backdrop-filter: blur(8px);
 
   transition:
@@ -68,62 +1115,92 @@
 }
 
 .webSourceCard:hover {
-  border-color: rgba(255, 220, 80, 0.42);
-  background: rgba(255, 220, 80, 0.05);
+  border-color:
+    rgba(255, 220, 80, 0.42);
+
+  background:
+    rgba(255, 220, 80, 0.05);
+
   transform: translateY(-1px);
 }
 
 .webSourceIndex {
   flex: 0 0 auto;
 
+  color: var(--eon-gold);
+
   font-size: 9px;
+
   letter-spacing: 0.12em;
+
   opacity: 0.55;
 }
 
 .webSourceContent {
   display: flex;
+
   flex-direction: column;
+
   gap: 3px;
 
   min-width: 0;
+
   flex: 1;
 }
 
 .webSourceTitle {
   overflow: hidden;
 
+  color: var(--eon-gold-bright);
+
   font-size: 10px;
+
   font-weight: 700;
+
   letter-spacing: 0.08em;
 
   white-space: nowrap;
+
   text-overflow: ellipsis;
 }
 
 .webSourceUrl {
   overflow: hidden;
 
+  color: rgba(255, 230, 145, 0.65);
+
   font-size: 8px;
+
   letter-spacing: 0.04em;
+
   opacity: 0.5;
 
   white-space: nowrap;
+
   text-overflow: ellipsis;
 }
 
 .webSourceArrow {
   flex: 0 0 auto;
+
+  color: var(--eon-gold);
+
   font-size: 14px;
+
   opacity: 0.7;
 }
 
 .webGroundedBadge {
   margin-top: 8px;
 
+  color: rgba(255, 220, 100, 0.65);
+
   font-size: 8px;
+
   letter-spacing: 0.16em;
+
   text-align: center;
+
   opacity: 0.5;
 }
 
@@ -136,14 +1213,244 @@
 }
 
 .webSourcesList::-webkit-scrollbar-thumb {
-  background: rgba(255, 220, 80, 0.25);
+  background:
+    rgba(255, 220, 80, 0.25);
+
   border-radius: 10px;
 }
 
+/* =========================================================
+   RESPONSIVE — TABLETS
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  .topBar {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .leftTools {
+    left: 10px;
+  }
+
+  .rightTools {
+    right: 10px;
+  }
+
+  .toolButton {
+    width: 88px;
+
+    font-size: 7px;
+  }
+
+  .coreArea {
+    width: 68vw;
+  }
+
+  .bottomArea {
+    width: min(620px, 78vw);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE — MOBILE
+   ========================================================= */
+
 @media (max-width: 700px) {
+  body {
+    overflow: hidden;
+  }
+
+  .eon {
+    min-height: 560px;
+  }
+
+  .topBar {
+    min-height: 72px;
+
+    padding:
+      14px
+      12px
+      0
+      12px;
+  }
+
+  .statusPanel {
+    gap: 6px;
+
+    padding: 7px 9px;
+
+    font-size: 7px;
+
+    letter-spacing: 0.1em;
+  }
+
+  .onlineDot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .brandPanel {
+    max-width: 62vw;
+  }
+
+  .brandTitle {
+    font-size: 8px;
+
+    letter-spacing: 0.19em;
+  }
+
+  .brandSub {
+    font-size: 5px;
+
+    letter-spacing: 0.1em;
+  }
+
+  .brandLine {
+    margin:
+      5px
+      0
+      4px
+      auto;
+  }
+
+  /* Move tool panels lower and make them compact */
+  .toolColumn {
+    top: auto;
+    bottom: 145px;
+
+    transform: none;
+
+    flex-direction: row;
+
+    gap: 5px;
+  }
+
+  .leftTools {
+    left: 8px;
+  }
+
+  .rightTools {
+    right: 8px;
+  }
+
+  .toolButton {
+    width: 45px;
+    min-height: 35px;
+
+    padding: 5px;
+
+    justify-content: center;
+
+    gap: 2px;
+
+    flex-direction: column;
+
+    border-radius: 7px;
+
+    font-size: 5px;
+
+    letter-spacing: 0.06em;
+  }
+
+  .toolIcon {
+    width: auto;
+
+    font-size: 12px;
+  }
+
+  .coreArea {
+    width: 94vw;
+    height: 56vh;
+
+    transform:
+      translate(-50%, -54%);
+  }
+
+  .response {
+    bottom: 2%;
+
+    width: 88vw;
+
+    padding: 8px 10px;
+
+    font-size: 8px;
+
+    letter-spacing: 0.07em;
+  }
+
+  .speedStatus {
+    bottom: -1%;
+
+    font-size: 5px;
+  }
+
+  .bottomArea {
+    bottom: 9px;
+
+    width: 92vw;
+
+    gap: 8px;
+  }
+
+  .commandBar {
+    min-height: 46px;
+
+    padding:
+      4px
+      5px
+      4px
+      8px;
+
+    border-radius: 9px;
+  }
+
+  .commandWave {
+    width: 25px;
+
+    font-size: 7px;
+  }
+
+  .commandBar input {
+    height: 34px;
+
+    font-size: 9px;
+
+    letter-spacing: 0.04em;
+  }
+
+  .sendButton {
+    width: 34px;
+    height: 34px;
+
+    font-size: 14px;
+  }
+
+  .bottomControls {
+    gap: 5px;
+  }
+
+  .controlButton {
+    min-width: 100px;
+
+    padding: 7px 8px;
+
+    font-size: 6px;
+
+    letter-spacing: 0.09em;
+  }
+
+  .footer {
+    display: none;
+  }
+
   .webSources {
     width: 88vw;
+
     max-width: 88vw;
+
+    bottom: -20%;
+
     margin-top: 10px;
   }
 
@@ -161,5 +1468,54 @@
 
   .webSourcesList {
     max-height: 125px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 420px) {
+  .statusPanel {
+    font-size: 6px;
+  }
+
+  .brandTitle {
+    font-size: 7px;
+  }
+
+  .brandSub {
+    display: none;
+  }
+
+  .toolButton {
+    width: 40px;
+  }
+
+  .toolButton span:last-child {
+    font-size: 4.5px;
+  }
+
+  .controlButton {
+    min-width: 92px;
+
+    font-size: 5.5px;
+  }
+}
+
+/* =========================================================
+   REDUCE MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+
+    transition-duration: 0.01ms !important;
   }
 }
