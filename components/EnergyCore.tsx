@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type EnergyCoreState =
   | "idle"
@@ -14,770 +14,1079 @@ type EnergyCoreProps = {
   state?: EnergyCoreState;
 };
 
-type DigitalFaceMode =
-  | "idle"
-  | "listening"
-  | "thinking"
-  | "speaking"
-  | "no-limits";
+type Point = {
+  x: number;
+  y: number;
+};
+
+type FaceReaction = {
+  blink: number;
+  mouth: number;
+  lookX: number;
+  lookY: number;
+  smile: number;
+};
+
+type FaceMeshInstance = {
+  setOptions: (options: Record<string, unknown>) => void;
+  onResults: (callback: (results: any) => void) => void;
+  send: (input: { image: HTMLVideoElement }) => Promise<void>;
+  close?: () => void;
+};
+
+type HandsInstance = {
+  setOptions: (options: Record<string, unknown>) => void;
+  onResults: (callback: (results: any) => void) => void;
+  send: (input: { image: HTMLVideoElement }) => Promise<void>;
+  close?: () => void;
+};
+
+declare global {
+  interface Window {
+    FaceMesh?: new (options: {
+      locateFile: (file: string) => string;
+    }) => FaceMeshInstance;
+
+    Hands?: new (options: {
+      locateFile: (file: string) => string;
+    }) => HandsInstance;
+  }
+}
+
+/*
+ * EON CORE
+ *
+ * Deliberately simple:
+ *   • two digital eyes
+ *   • one digital mouth
+ *
+ * Interaction:
+ *   • mouse movement -> eyes follow
+ *   • touch movement -> eyes follow
+ *   • tap/click -> eyes react
+ *   • optional camera -> EON mirrors blinking + mouth opening
+ *   • optional hand tracking -> eyes can follow the user's hand
+ *
+ * Camera is OFF until the user explicitly presses CAMERA.
+ */
 
 export default function EnergyCore({
   state = "idle",
 }: EnergyCoreProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef =
+    useRef<HTMLCanvasElement>(null);
+
+  const videoRef =
+    useRef<HTMLVideoElement>(null);
+
+  const streamRef =
+    useRef<MediaStream | null>(null);
+
+  const faceMeshRef =
+    useRef<FaceMeshInstance | null>(null);
+
+  const handsRef =
+    useRef<HandsInstance | null>(null);
+
+  const trackingFrameRef =
+    useRef<number | null>(null);
+
+  const cameraStartingRef =
+    useRef(false);
+
+  const lastHandSeenRef =
+    useRef(0);
+
+  const reactionRef =
+    useRef<FaceReaction>({
+      blink: 0,
+      mouth: 0,
+      lookX: 0,
+      lookY: 0,
+      smile: 0,
+    });
+
+  const pointerRef =
+    useRef<Point>({
+      x: 0,
+      y: 0,
+    });
+
+  const pointerActiveRef =
+    useRef(false);
+
+  const tapPulseRef =
+    useRef(0);
+
+  const handTargetRef =
+    useRef<Point | null>(null);
+
+  const [cameraOn, setCameraOn] =
+    useState(false);
+
+  const [cameraError, setCameraError] =
+    useState("");
+
+  /*
+   * ------------------------------------------------------------
+   * LOAD MEDIAPIPE LIBRARIES
+   * ------------------------------------------------------------
+   */
+
+  const loadScript = (
+    id: string,
+    src: string
+  ) =>
+    new Promise<void>(
+      (resolve, reject) => {
+        const existing =
+          document.querySelector(
+            'script[data-eon-lib="' +
+              id +
+              '"]'
+          );
+
+        if (existing) {
+          if (
+            id === "face-mesh" &&
+            window.FaceMesh
+          ) {
+            resolve();
+            return;
+          }
+
+          if (
+            id === "hands" &&
+            window.Hands
+          ) {
+            resolve();
+            return;
+          }
+
+          existing.addEventListener(
+            "load",
+            () => resolve(),
+            { once: true }
+          );
+
+          existing.addEventListener(
+            "error",
+            () =>
+              reject(
+                new Error(
+                  id +
+                    " failed to load."
+                )
+              ),
+            { once: true }
+          );
+
+          return;
+        }
+
+        const script =
+          document.createElement(
+            "script"
+          );
+
+        script.dataset.eonLib = id;
+        script.src = src;
+        script.async = true;
+
+        script.onload = () =>
+          resolve();
+
+        script.onerror = () =>
+          reject(
+            new Error(
+              id +
+                " failed to load."
+            )
+          );
+
+        document.head.appendChild(
+          script
+        );
+      }
+    );
+
+  /*
+   * ------------------------------------------------------------
+   * CAMERA / FACE / HAND TRACKING
+   * ------------------------------------------------------------
+   */
+
+  const stopCamera = () => {
+    if (
+      trackingFrameRef.current !==
+      null
+    ) {
+      cancelAnimationFrame(
+        trackingFrameRef.current
+      );
+
+      trackingFrameRef.current =
+        null;
+    }
+
+    faceMeshRef.current?.close?.();
+    handsRef.current?.close?.();
+
+    faceMeshRef.current = null;
+    handsRef.current = null;
+
+    if (streamRef.current) {
+      streamRef.current
+        .getTracks()
+        .forEach((track) =>
+          track.stop()
+        );
+
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject =
+        null;
+    }
+
+    handTargetRef.current =
+      null;
+
+    reactionRef.current = {
+      blink: 0,
+      mouth: 0,
+      lookX: 0,
+      lookY: 0,
+      smile: 0,
+    };
+
+    setCameraOn(false);
+  };
+
+  const landmarkDistance = (
+    a: any,
+    b: any
+  ) => {
+    if (!a || !b) {
+      return 0;
+    }
+
+    return Math.hypot(
+      a.x - b.x,
+      a.y - b.y
+    );
+  };
+
+  const eyeAspectRatio = (
+    points: any[],
+    ids: number[]
+  ) => {
+    const p1 = points[ids[0]];
+    const p2 = points[ids[1]];
+    const p3 = points[ids[2]];
+    const p4 = points[ids[3]];
+    const p5 = points[ids[4]];
+    const p6 = points[ids[5]];
+
+    if (
+      !p1 ||
+      !p2 ||
+      !p3 ||
+      !p4 ||
+      !p5 ||
+      !p6
+    ) {
+      return 1;
+    }
+
+    const verticalA =
+      landmarkDistance(p2, p6);
+
+    const verticalB =
+      landmarkDistance(p3, p5);
+
+    const horizontal =
+      landmarkDistance(p1, p4);
+
+    if (horizontal <= 0.0001) {
+      return 1;
+    }
+
+    return (
+      (verticalA + verticalB) /
+      (2 * horizontal)
+    );
+  };
+
+  const startTracking =
+    async (
+      video: HTMLVideoElement
+    ) => {
+      await Promise.all([
+        loadScript(
+          "face-mesh",
+          "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
+        ),
+        loadScript(
+          "hands",
+          "https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
+        ),
+      ]);
+
+      if (
+        !window.FaceMesh ||
+        !window.Hands
+      ) {
+        throw new Error(
+          "Vision libraries are unavailable."
+        );
+      }
+
+      /*
+       * FACE
+       */
+
+      const face =
+        new window.FaceMesh({
+          locateFile: (file) =>
+            "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/" +
+            file,
+        });
+
+      face.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.55,
+        minTrackingConfidence: 0.55,
+      });
+
+      face.onResults(
+        (results) => {
+          const points =
+            results?.multiFaceLandmarks?.[0];
+
+          if (!points) {
+            reactionRef.current.blink *=
+              0.82;
+
+            reactionRef.current.mouth *=
+              0.84;
+
+            reactionRef.current.smile *=
+              0.9;
+
+            return;
+          }
+
+          /*
+           * Eye landmarks.
+           */
+
+          const leftEAR =
+            eyeAspectRatio(
+              points,
+              [
+                33,
+                160,
+                158,
+                133,
+                153,
+                144,
+              ]
+            );
+
+          const rightEAR =
+            eyeAspectRatio(
+              points,
+              [
+                362,
+                385,
+                387,
+                263,
+                373,
+                380,
+              ]
+            );
+
+          const averageEAR =
+            (leftEAR + rightEAR) /
+            2;
+
+          const blinkTarget =
+            averageEAR < 0.205
+              ? 1
+              : 0;
+
+          /*
+           * Mouth opening.
+           */
+
+          const mouthTop =
+            points[13];
+
+          const mouthBottom =
+            points[14];
+
+          const mouthLeft =
+            points[61];
+
+          const mouthRight =
+            points[291];
+
+          const mouthHeight =
+            landmarkDistance(
+              mouthTop,
+              mouthBottom
+            );
+
+          const mouthWidth =
+            landmarkDistance(
+              mouthLeft,
+              mouthRight
+            );
+
+          const mouthRatio =
+            mouthWidth > 0
+              ? mouthHeight /
+                mouthWidth
+              : 0;
+
+          const mouthTarget =
+            Math.max(
+              0,
+              Math.min(
+                1,
+                (mouthRatio - 0.08) /
+                  0.30
+              )
+            );
+
+          const smileTarget =
+            Math.max(
+              0,
+              Math.min(
+                1,
+                (mouthRatio - 0.13) /
+                  0.14
+              )
+            );
+
+          /*
+           * Face direction.
+           */
+
+          const nose =
+            points[1];
+
+          const centerX =
+            nose?.x ?? 0.5;
+
+          const centerY =
+            nose?.y ?? 0.5;
+
+          const faceLookX =
+            Math.max(
+              -1,
+              Math.min(
+                1,
+                (0.5 -
+                  centerX) *
+                  2.8
+              )
+            );
+
+          const faceLookY =
+            Math.max(
+              -1,
+              Math.min(
+                1,
+                (centerY -
+                  0.5) *
+                  2.2
+              )
+            );
+
+          const reaction =
+            reactionRef.current;
+
+          reaction.blink +=
+            (blinkTarget -
+              reaction.blink) *
+            0.48;
+
+          reaction.mouth +=
+            (mouthTarget -
+              reaction.mouth) *
+            0.35;
+
+          reaction.smile +=
+            (smileTarget -
+              reaction.smile) *
+            0.25;
+
+          /*
+           * Only use face direction when a hand
+           * hasn't been seen recently.
+           */
+
+          if (
+            Date.now() -
+              lastHandSeenRef.current >
+            900
+          ) {
+            reaction.lookX +=
+              (faceLookX -
+                reaction.lookX) *
+              0.12;
+
+            reaction.lookY +=
+              (faceLookY -
+                reaction.lookY) *
+              0.12;
+          }
+        }
+      );
+
+      /*
+       * HANDS
+       */
+
+      const hands =
+        new window.Hands({
+          locateFile: (file) =>
+            "https://cdn.jsdelivr.net/npm/@mediapipe/hands/" +
+            file,
+        });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      });
+
+      hands.onResults(
+        (results) => {
+          const allHands =
+            results?.multiHandLandmarks;
+
+          if (
+            !allHands ||
+            allHands.length === 0
+          ) {
+            return;
+          }
+
+          /*
+           * Use the average palm position.
+           * EON's eyes follow the hand.
+           */
+
+          let sumX = 0;
+          let sumY = 0;
+          let count = 0;
+
+          for (
+            const hand of allHands
+          ) {
+            if (!hand) {
+              continue;
+            }
+
+            const palm =
+              hand[9] ||
+              hand[0];
+
+            if (!palm) {
+              continue;
+            }
+
+            sumX += palm.x;
+            sumY += palm.y;
+            count++;
+          }
+
+          if (count === 0) {
+            return;
+          }
+
+          const handX =
+            sumX / count;
+
+          const handY =
+            sumY / count;
+
+          handTargetRef.current = {
+            x: handX,
+            y: handY,
+          };
+
+          lastHandSeenRef.current =
+            Date.now();
+
+          const targetX =
+            Math.max(
+              -1,
+              Math.min(
+                1,
+                (0.5 -
+                  handX) *
+                  3.4
+              )
+            );
+
+          const targetY =
+            Math.max(
+              -1,
+              Math.min(
+                1,
+                (handY -
+                  0.5) *
+                  2.7
+              )
+            );
+
+          reactionRef.current.lookX +=
+            (targetX -
+              reactionRef.current.lookX) *
+            0.22;
+
+          reactionRef.current.lookY +=
+            (targetY -
+              reactionRef.current.lookY) *
+            0.22;
+        }
+      );
+
+      faceMeshRef.current =
+        face;
+
+      handsRef.current =
+        hands;
+
+      /*
+       * PROCESS VIDEO
+       */
+
+      const processFrame =
+        async () => {
+          if (
+            !videoRef.current ||
+            videoRef.current.readyState <
+              2
+          ) {
+            trackingFrameRef.current =
+              requestAnimationFrame(
+                processFrame
+              );
+
+            return;
+          }
+
+          try {
+            /*
+             * Send alternating frames to the two
+             * models. This keeps the browser lighter.
+             */
+            await face.send({
+              image: videoRef.current,
+            });
+
+            await hands.send({
+              image: videoRef.current,
+            });
+          } catch {
+            // A dropped frame should not stop tracking.
+          }
+
+          trackingFrameRef.current =
+            requestAnimationFrame(
+              processFrame
+            );
+        };
+
+      processFrame();
+    };
+
+  const toggleCamera =
+    async () => {
+      if (cameraStartingRef.current) {
+        return;
+      }
+
+      if (cameraOn) {
+        stopCamera();
+        return;
+      }
+
+      cameraStartingRef.current =
+        true;
+
+      setCameraError("");
+
+      try {
+        if (
+          !navigator.mediaDevices?.getUserMedia
+        ) {
+          throw new Error(
+            "Camera is not supported by this browser."
+          );
+        }
+
+        /*
+         * Permission is requested only after the user
+         * explicitly presses the camera control.
+         */
+
+        const stream =
+          await navigator.mediaDevices.getUserMedia(
+            {
+              video: {
+                facingMode: "user",
+                width: {
+                  ideal: 640,
+                },
+                height: {
+                  ideal: 480,
+                },
+              },
+              audio: false,
+            }
+          );
+
+        streamRef.current =
+          stream;
+
+        if (!videoRef.current) {
+          throw new Error(
+            "Camera element unavailable."
+          );
+        }
+
+        videoRef.current.srcObject =
+          stream;
+
+        await videoRef.current.play();
+
+        await startTracking(
+          videoRef.current
+        );
+
+        setCameraOn(true);
+      } catch (error) {
+        if (streamRef.current) {
+          streamRef.current
+            .getTracks()
+            .forEach((track) =>
+              track.stop()
+            );
+        }
+
+        streamRef.current = null;
+
+        setCameraError(
+          error instanceof Error
+            ? error.message
+            : "Camera could not be started."
+        );
+      } finally {
+        cameraStartingRef.current =
+          false;
+      }
+    };
+
+  /*
+   * ------------------------------------------------------------
+   * SIMPLE CANVAS FACE
+   * ------------------------------------------------------------
+   */
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas =
+      canvasRef.current;
 
     if (!canvas) {
       return;
     }
 
-    const ctx = canvas.getContext("2d");
+    const ctx =
+      canvas.getContext("2d");
 
     if (!ctx) {
       return;
     }
 
-    let animationFrame = 0;
     let width = 0;
     let height = 0;
     let dpr = 1;
+    let animationFrame = 0;
 
     const resize = () => {
-      const rect = canvas.getBoundingClientRect();
+      const rect =
+        canvas.getBoundingClientRect();
 
       width = rect.width;
       height = rect.height;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      canvas.width = Math.max(1, Math.floor(width * dpr));
-      canvas.height = Math.max(1, Math.floor(height * dpr));
+      dpr = Math.min(
+        window.devicePixelRatio || 1,
+        2
+      );
 
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = Math.max(
+        1,
+        Math.floor(width * dpr)
+      );
+
+      canvas.height = Math.max(
+        1,
+        Math.floor(height * dpr)
+      );
+
+      ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+      );
     };
 
     resize();
-    window.addEventListener("resize", resize);
 
-    const getMode = (): DigitalFaceMode => {
-      if (state === "no-limits" || state === "alert") {
-        return "no-limits";
-      }
+    window.addEventListener(
+      "resize",
+      resize
+    );
 
-      if (state === "listening") {
-        return "listening";
-      }
-
-      if (state === "thinking") {
-        return "thinking";
-      }
-
-      if (state === "speaking") {
-        return "speaking";
-      }
-
-      return "idle";
-    };
-
-    const roundRect = (
-      x: number,
-      y: number,
-      w: number,
-      h: number,
-      r: number
+    const draw = (
+      time: number
     ) => {
-      const radius = Math.min(r, w / 2, h / 2);
+      if (
+        width <= 0 ||
+        height <= 0
+      ) {
+        animationFrame =
+          requestAnimationFrame(
+            draw
+          );
 
-      ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + w - radius, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-      ctx.lineTo(x + w, y + h - radius);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-      ctx.lineTo(x + radius, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
-    };
-
-    const glowLine = (
-      points: Array<[number, number]>,
-      color: string,
-      glow: string,
-      lineWidth = 1.5
-    ) => {
-      ctx.save();
-
-      ctx.beginPath();
-      ctx.moveTo(points[0][0], points[0][1]);
-
-      for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i][0], points[i][1]);
-      }
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = lineWidth;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = glow;
-      ctx.stroke();
-
-      ctx.restore();
-    };
-
-    const draw = (time: number) => {
-      if (width <= 0 || height <= 0) {
-        animationFrame = requestAnimationFrame(draw);
         return;
       }
 
-      const mode = getMode();
+      ctx.clearRect(
+        0,
+        0,
+        width,
+        height
+      );
 
-      const isRed = mode === "no-limits";
+      const isRed =
+        state === "no-limits" ||
+        state === "alert";
 
-      const primary = isRed
-        ? "rgba(255, 105, 105, 1)"
-        : "rgba(255, 222, 105, 1)";
+      const primary =
+        isRed
+          ? "255, 90, 90"
+          : "255, 224, 105";
 
-      const bright = isRed
-        ? "rgba(255, 225, 225, 1)"
-        : "rgba(255, 250, 205, 1)";
+      const bright =
+        isRed
+          ? "255, 225, 225"
+          : "255, 250, 210";
 
-      const soft = isRed
-        ? "rgba(255, 70, 70, 0.22)"
-        : "rgba(255, 215, 80, 0.20)";
+      const reaction =
+        reactionRef.current;
 
-      const faint = isRed
-        ? "rgba(255, 80, 80, 0.10)"
-        : "rgba(255, 220, 100, 0.08)";
+      const idleBlink =
+        Math.sin(
+          time * 0.00065
+        ) > 0.992
+          ? 1
+          : 0;
 
-      ctx.clearRect(0, 0, width, height);
+      const cameraBlink =
+        cameraOn
+          ? reaction.blink
+          : idleBlink;
 
-      const cx = width / 2;
-      const cy = height / 2 - 18;
-
-      const scale = Math.min(width, height) / 420;
-
-      const float =
-        Math.sin(time * 0.0018) * 3;
-
-      const faceW = 174 * scale;
-      const faceH = 202 * scale;
-
-      const faceX = cx - faceW / 2;
-      const faceY = cy - faceH / 2 + float;
-
-      /*
-       * ---------------------------------------------------------
-       * DIGITAL AMBIENCE
-       * ---------------------------------------------------------
-       * No energy orbits. Only small UI particles around EON.
-       */
-
-      for (let i = 0; i < 34; i++) {
-        const angle =
-          i * 2.399 + time * 0.00008;
-
-        const distance =
-          (135 + (i % 7) * 22) * scale;
-
-        const px =
-          cx +
-          Math.cos(angle) * distance;
-
-        const py =
-          cy +
-          Math.sin(angle) *
-            distance *
-            0.78;
-
-        const alpha =
-          0.18 +
-          0.18 *
-            Math.sin(
-              time * 0.002 + i
-            );
-
-        ctx.beginPath();
-        ctx.arc(
-          px,
-          py,
-          (i % 3 === 0 ? 1.8 : 1) * scale,
+      const blinkAmount =
+        Math.max(
           0,
-          Math.PI * 2
+          Math.min(
+            1,
+            cameraBlink
+          )
         );
 
-        ctx.fillStyle = isRed
-          ? "rgba(255, 90, 90, " + alpha + ")"
-          : "rgba(255, 220, 100, " + alpha + ")";
-
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = primary;
-        ctx.fill();
-      }
-
       /*
-       * ---------------------------------------------------------
-       * DIGITAL HEAD SHADOW
-       * ---------------------------------------------------------
+       * Pointer/touch controls are active even
+       * when camera is OFF.
        */
 
-      const headGlow =
-        ctx.createRadialGradient(
-          cx,
-          cy + float,
-          faceW * 0.1,
-          cx,
-          cy + float,
-          faceW * 1.1
-        );
+      let lookX =
+        reaction.lookX;
 
-      headGlow.addColorStop(
-        0,
-        soft
-      );
+      let lookY =
+        reaction.lookY;
 
-      headGlow.addColorStop(
-        0.55,
-        faint
-      );
-
-      headGlow.addColorStop(
-        1,
-        "rgba(0,0,0,0)"
-      );
-
-      ctx.fillStyle = headGlow;
-      ctx.beginPath();
-
-      ctx.ellipse(
-        cx,
-        cy + float,
-        faceW * 1.02,
-        faceH * 0.82,
-        0,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-
-      /*
-       * ---------------------------------------------------------
-       * NECK
-       * ---------------------------------------------------------
-       */
-
-      ctx.fillStyle =
-        "rgba(8, 11, 19, 0.98)";
-
-      roundRect(
-        cx - 34 * scale,
-        faceY + faceH - 8 * scale,
-        68 * scale,
-        42 * scale,
-        18 * scale
-      );
-
-      ctx.fill();
-
-      ctx.strokeStyle =
-        isRed
-          ? "rgba(255, 100, 100, 0.48)"
-          : "rgba(255, 220, 110, 0.48)";
-
-      ctx.lineWidth = 1 * scale;
-      ctx.stroke();
-
-      /*
-       * ---------------------------------------------------------
-       * FACE
-       * ---------------------------------------------------------
-       */
-
-      const faceGradient =
-        ctx.createLinearGradient(
-          faceX,
-          faceY,
-          faceX + faceW,
-          faceY + faceH
-        );
-
-      faceGradient.addColorStop(
-        0,
-        "rgba(34, 38, 50, 0.98)"
-      );
-
-      faceGradient.addColorStop(
-        0.55,
-        "rgba(13, 17, 26, 0.99)"
-      );
-
-      faceGradient.addColorStop(
-        1,
-        "rgba(5, 8, 14, 1)"
-      );
-
-      ctx.fillStyle = faceGradient;
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        cx,
-        faceY
-      );
-
-      ctx.bezierCurveTo(
-        faceX + faceW * 0.78,
-        faceY,
-        faceX + faceW,
-        faceY + faceH * 0.22,
-        faceX + faceW * 0.92,
-        faceY + faceH * 0.63
-      );
-
-      ctx.bezierCurveTo(
-        faceX + faceW * 0.84,
-        faceY + faceH * 0.88,
-        cx + faceW * 0.25,
-        faceY + faceH,
-        cx,
-        faceY + faceH * 0.97
-      );
-
-      ctx.bezierCurveTo(
-        cx - faceW * 0.25,
-        faceY + faceH,
-        faceX + faceW * 0.16,
-        faceY + faceH * 0.88,
-        faceX + faceW * 0.08,
-        faceY + faceH * 0.63
-      );
-
-      ctx.bezierCurveTo(
-        faceX,
-        faceY + faceH * 0.22,
-        faceX + faceW * 0.22,
-        faceY,
-        cx,
-        faceY
-      );
-
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.strokeStyle =
-        isRed
-          ? "rgba(255, 110, 110, 0.70)"
-          : "rgba(255, 225, 120, 0.68)";
-
-      ctx.lineWidth =
-        1.25 * scale;
-
-      ctx.shadowBlur = 14;
-      ctx.shadowColor = primary;
-      ctx.stroke();
-
-      /*
-       * ---------------------------------------------------------
-       * DIGITAL FACE GRID
-       * ---------------------------------------------------------
-       */
-
-      ctx.save();
-
-      ctx.globalAlpha = 0.12;
-
-      ctx.strokeStyle = primary;
-      ctx.lineWidth = 0.45 * scale;
-
-      for (
-        let x = faceX;
-        x <= faceX + faceW;
-        x += 14 * scale
+      if (
+        pointerActiveRef.current
       ) {
-        ctx.beginPath();
-        ctx.moveTo(x, faceY + 8 * scale);
-        ctx.lineTo(
-          x,
-          faceY + faceH - 8 * scale
-        );
-        ctx.stroke();
+        lookX =
+          pointerRef.current.x;
+
+        lookY =
+          pointerRef.current.y;
       }
 
-      for (
-        let y = faceY;
-        y <= faceY + faceH;
-        y += 14 * scale
-      ) {
-        ctx.beginPath();
-        ctx.moveTo(faceX + 8 * scale, y);
-        ctx.lineTo(
-          faceX + faceW - 8 * scale,
-          y
-        );
-        ctx.stroke();
-      }
+      const centerX =
+        width / 2;
 
-      ctx.restore();
+      const centerY =
+        height / 2 - 8;
 
-      /*
-       * ---------------------------------------------------------
-       * HAIR
-       * ---------------------------------------------------------
-       */
+      const scale =
+        Math.min(
+          width,
+          height
+        ) / 420;
 
-      const hairColor =
-        "rgba(4, 7, 14, 0.99)";
+      const eyeSpacing =
+        58 * scale;
 
-      ctx.fillStyle = hairColor;
+      const eyeWidth =
+        48 * scale;
 
-      ctx.beginPath();
-
-      ctx.moveTo(
-        faceX + 9 * scale,
-        faceY + 62 * scale
-      );
-
-      ctx.bezierCurveTo(
-        faceX + 2 * scale,
-        faceY + 20 * scale,
-        faceX + 34 * scale,
-        faceY - 18 * scale,
-        cx - 42 * scale,
-        faceY + 2 * scale
-      );
-
-      ctx.lineTo(
-        cx - 25 * scale,
-        faceY - 22 * scale
-      );
-
-      ctx.lineTo(
-        cx - 6 * scale,
-        faceY + 1 * scale
-      );
-
-      ctx.lineTo(
-        cx + 10 * scale,
-        faceY - 29 * scale
-      );
-
-      ctx.lineTo(
-        cx + 24 * scale,
-        faceY - 1 * scale
-      );
-
-      ctx.lineTo(
-        cx + 53 * scale,
-        faceY - 20 * scale
-      );
-
-      ctx.lineTo(
-        cx + 45 * scale,
-        faceY + 13 * scale
-      );
-
-      ctx.bezierCurveTo(
-        faceX + faceW - 16 * scale,
-        faceY + 6 * scale,
-        faceX + faceW + 2 * scale,
-        faceY + 38 * scale,
-        faceX + faceW - 10 * scale,
-        faceY + 72 * scale
-      );
-
-      ctx.bezierCurveTo(
-        faceX + faceW - 40 * scale,
-        faceY + 52 * scale,
-        faceX + 27 * scale,
-        faceY + 55 * scale,
-        faceX + 9 * scale,
-        faceY + 62 * scale
-      );
-
-      ctx.closePath();
-      ctx.fill();
-
-      /*
-       * Hair digital highlights
-       */
-
-      glowLine(
-        [
-          [
-            cx - 70 * scale,
-            faceY + 36 * scale,
-          ],
-          [
-            cx - 48 * scale,
-            faceY + 4 * scale,
-          ],
-          [
-            cx - 25 * scale,
-            faceY - 4 * scale,
-          ],
-        ],
-        primary.replace("1)", "0.42)"),
-        primary.replace("1)", "0.25)"),
-        1.2 * scale
-      );
-
-      glowLine(
-        [
-          [
-            cx - 4 * scale,
-            faceY + 2 * scale,
-          ],
-          [
-            cx + 9 * scale,
-            faceY - 18 * scale,
-          ],
-          [
-            cx + 23 * scale,
-            faceY + 4 * scale,
-          ],
-        ],
-        primary.replace("1)", "0.52)"),
-        primary.replace("1)", "0.25)"),
-        1.2 * scale
-      );
-
-      glowLine(
-        [
-          [
-            cx + 30 * scale,
-            faceY + 5 * scale,
-          ],
-          [
-            cx + 53 * scale,
-            faceY - 8 * scale,
-          ],
-          [
-            cx + 62 * scale,
-            faceY + 31 * scale,
-          ],
-        ],
-        primary.replace("1)", "0.40)"),
-        primary.replace("1)", "0.25)"),
-        1.2 * scale
-      );
-
-      /*
-       * ---------------------------------------------------------
-       * EYEBROWS
-       * ---------------------------------------------------------
-       */
-
-      glowLine(
-        [
-          [
-            cx - 58 * scale,
-            cy - 13 * scale + float,
-          ],
-          [
-            cx - 32 * scale,
-            cy - 20 * scale + float,
-          ],
-          [
-            cx - 13 * scale,
-            cy - 16 * scale + float,
-          ],
-        ],
-        primary,
-        primary,
-        2 * scale
-      );
-
-      glowLine(
-        [
-          [
-            cx + 13 * scale,
-            cy - 16 * scale + float,
-          ],
-          [
-            cx + 32 * scale,
-            cy - 20 * scale + float,
-          ],
-          [
-            cx + 58 * scale,
-            cy - 13 * scale + float,
-          ],
-        ],
-        primary,
-        primary,
-        2 * scale
-      );
-
-      /*
-       * ---------------------------------------------------------
-       * EYES
-       * ---------------------------------------------------------
-       */
+      const eyeHeight =
+        34 * scale;
 
       const eyeY =
-        cy + 16 * scale + float;
+        centerY - 10 * scale;
 
-      const eyeDistance =
-        39 * scale;
+      const eyeLookX =
+        lookX * 10 * scale;
 
-      const eyeW =
-        46 * scale;
+      const eyeLookY =
+        lookY * 6 * scale;
 
-      const eyeH =
-        31 * scale;
+      const pulse =
+        1 +
+        Math.sin(
+          time * 0.003
+        ) *
+          0.035;
 
-      const blink =
-        mode === "speaking"
-          ? 1
-          : Math.sin(
-              time * 0.00075
-            ) > 0.985
-          ? 0.12
-          : 1;
+      /*
+       * Tap/click reaction.
+       */
+
+      const tapPulse =
+        tapPulseRef.current;
+
+      tapPulseRef.current *=
+        0.90;
+
+      const glowStrength =
+        8 + tapPulse * 22;
 
       const drawEye = (
-        eyeX: number,
-        flip = false
+        x: number
       ) => {
         ctx.save();
 
         ctx.translate(
-          eyeX,
+          x,
           eyeY
         );
 
+        const eyeOpen =
+          Math.max(
+            0.05,
+            1 -
+              blinkAmount *
+                0.96
+          );
+
         ctx.scale(
           1,
-          blink
+          eyeOpen
         );
 
         /*
-         * Outer digital eye.
+         * Outer eye.
          */
 
         ctx.beginPath();
 
-        ctx.moveTo(
-          -eyeW / 2,
-          0
-        );
-
-        ctx.quadraticCurveTo(
-          -eyeW * 0.18,
-          -eyeH / 2,
+        ctx.ellipse(
           0,
-          -eyeH * 0.42
-        );
-
-        ctx.quadraticCurveTo(
-          eyeW * 0.18,
-          -eyeH / 2,
-          eyeW / 2,
-          0
-        );
-
-        ctx.quadraticCurveTo(
-          eyeW * 0.18,
-          eyeH / 2,
           0,
-          eyeH * 0.42
+          eyeWidth / 2,
+          eyeHeight / 2,
+          0,
+          0,
+          Math.PI * 2
         );
-
-        ctx.quadraticCurveTo(
-          -eyeW * 0.18,
-          eyeH / 2,
-          -eyeW / 2,
-          0
-        );
-
-        ctx.closePath();
-
-        ctx.fillStyle =
-          "rgba(2, 5, 10, 0.92)";
-
-        ctx.fill();
 
         ctx.strokeStyle =
-          primary;
+          "rgba(" +
+          primary +
+          ", 0.95)";
 
         ctx.lineWidth =
-          1.35 * scale;
+          2 * scale;
 
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = primary;
+        ctx.shadowBlur =
+          glowStrength;
+
+        ctx.shadowColor =
+          "rgba(" +
+          primary +
+          ", 0.85)";
+
         ctx.stroke();
 
         /*
-         * Iris.
+         * Iris follows face/hand/touch.
          */
 
-        const irisSize =
-          10 * scale;
+        const irisX =
+          eyeLookX;
 
-        const irisGradient =
-          ctx.createRadialGradient(
-            0,
-            0,
-            0,
-            0,
-            0,
-            irisSize * 1.8
-          );
+        const irisY =
+          eyeLookY;
 
-        irisGradient.addColorStop(
-          0,
-          bright
-        );
-
-        irisGradient.addColorStop(
-          0.35,
-          primary
-        );
-
-        irisGradient.addColorStop(
-          1,
-          "rgba(0,0,0,0)"
-        );
-
-        ctx.fillStyle =
-          irisGradient;
+        const irisRadius =
+          11 * scale * pulse;
 
         ctx.beginPath();
 
         ctx.arc(
-          0,
-          0,
-          irisSize * 1.8,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-
-        ctx.beginPath();
-
-        ctx.arc(
-          0,
-          0,
-          irisSize,
+          irisX,
+          irisY,
+          irisRadius,
           0,
           Math.PI * 2
         );
 
         ctx.fillStyle =
-          "rgba(7, 10, 17, 1)";
+          "rgba(5, 8, 14, 0.96)";
 
         ctx.fill();
 
         ctx.strokeStyle =
-          primary;
+          "rgba(" +
+          primary +
+          ", 1)";
 
         ctx.lineWidth =
-          1 * scale;
+          1.5 * scale;
+
+        ctx.shadowBlur =
+          glowStrength;
 
         ctx.stroke();
 
@@ -785,459 +1094,230 @@ export default function EnergyCore({
          * Pupil.
          */
 
-        const pupilPulse =
-          1 +
-          Math.sin(
-            time * 0.003
-          ) *
-            0.08;
-
         ctx.beginPath();
 
         ctx.arc(
-          0,
-          0,
-          3.5 * scale * pupilPulse,
+          irisX,
+          irisY,
+          4.2 * scale,
           0,
           Math.PI * 2
         );
 
         ctx.fillStyle =
-          bright;
+          "rgba(" +
+          bright +
+          ", 1)";
 
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = primary;
+        ctx.shadowBlur = 14;
+        ctx.shadowColor =
+          "rgba(" +
+          primary +
+          ", 1)";
+
         ctx.fill();
-
-        /*
-         * Digital eye reflection.
-         */
-
-        ctx.beginPath();
-
-        ctx.arc(
-          -3 * scale,
-          -3 * scale,
-          1.4 * scale,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fillStyle =
-          "rgba(255,255,255,0.8)";
-
-        ctx.shadowBlur = 0;
-        ctx.fill();
-
-        /*
-         * Tiny scan ticks.
-         */
-
-        ctx.strokeStyle =
-          primary.replace(
-            "1)",
-            "0.45)"
-          );
-
-        ctx.lineWidth =
-          0.7 * scale;
-
-        for (
-          let i = -1;
-          i <= 1;
-          i++
-        ) {
-          ctx.beginPath();
-
-          ctx.moveTo(
-            flip
-              ? eyeW * 0.34
-              : -eyeW * 0.34,
-            i * 7 * scale
-          );
-
-          ctx.lineTo(
-            flip
-              ? eyeW * 0.43
-              : -eyeW * 0.43,
-            i * 7 * scale
-          );
-
-          ctx.stroke();
-        }
 
         ctx.restore();
       };
 
       drawEye(
-        cx - eyeDistance,
-        false
+        centerX - eyeSpacing
       );
 
       drawEye(
-        cx + eyeDistance,
-        true
+        centerX + eyeSpacing
       );
 
       /*
-       * ---------------------------------------------------------
-       * NOSE
-       * ---------------------------------------------------------
-       */
-
-      glowLine(
-        [
-          [
-            cx,
-            cy + 27 * scale + float,
-          ],
-          [
-            cx - 3 * scale,
-            cy + 51 * scale + float,
-          ],
-          [
-            cx + 5 * scale,
-            cy + 57 * scale + float,
-          ],
-        ],
-        primary.replace("1)", "0.45)"),
-        primary.replace("1)", "0.18)"),
-        1 * scale
-      );
-
-      /*
-       * ---------------------------------------------------------
        * MOUTH
-       * ---------------------------------------------------------
+       *
+       * Camera:
+       *   user's mouth opening -> EON mouth opens
+       *
+       * Speaking:
+       *   EON voice -> subtle mouth animation
+       *
+       * Touch:
+       *   tap -> tiny smile response
        */
 
-      const mouthY =
-        cy + 76 * scale + float;
-
-      const speakingWave =
-        mode === "speaking"
-          ? Math.abs(
+      const voiceMouth =
+        state === "speaking"
+          ? 0.35 +
+            Math.abs(
               Math.sin(
                 time * 0.014
               )
             ) *
-            7 *
-            scale
+              0.38
           : 0;
+
+      const cameraMouth =
+        cameraOn
+          ? reaction.mouth
+          : 0;
+
+      const mouthOpen =
+        Math.max(
+          voiceMouth,
+          cameraMouth
+        );
+
+      const smile =
+        reaction.smile * 0.45 +
+        tapPulse * 0.08;
+
+      const mouthWidth =
+        (46 +
+          mouthOpen * 10) *
+        scale;
+
+      const mouthY =
+        centerY +
+        65 * scale;
+
+      const mouthDepth =
+        (8 +
+          mouthOpen *
+            25) *
+        scale;
 
       ctx.save();
 
       ctx.beginPath();
 
       ctx.moveTo(
-        cx - 25 * scale,
+        centerX -
+          mouthWidth / 2,
         mouthY
       );
 
       ctx.quadraticCurveTo(
-        cx,
+        centerX,
         mouthY +
-          11 * scale +
-          speakingWave,
-        cx + 25 * scale,
+          mouthDepth -
+          smile * 7 * scale,
+        centerX +
+          mouthWidth / 2,
         mouthY
       );
 
       ctx.strokeStyle =
-        bright;
+        "rgba(" +
+        bright +
+        ", 1)";
 
       ctx.lineWidth =
-        1.7 * scale;
+        2.2 * scale;
 
-      ctx.lineCap = "round";
+      ctx.lineCap =
+        "round";
 
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = primary;
-      ctx.stroke();
+      ctx.shadowBlur =
+        glowStrength;
 
-      ctx.restore();
-
-      /*
-       * ---------------------------------------------------------
-       * CHEEK DIGITAL MARKERS
-       * ---------------------------------------------------------
-       */
-
-      const drawCheek = (
-        x: number,
-        y: number,
-        direction: number
-      ) => {
-        for (let i = 0; i < 3; i++) {
-          ctx.fillStyle =
-            primary.replace(
-              "1)",
-              String(
-                0.28 -
-                  i * 0.06
-              ) + ")"
-            );
-
-          ctx.fillRect(
-            x +
-              direction *
-                i *
-                5 *
-                scale,
-            y +
-              i *
-                4 *
-                scale,
-            2.5 * scale,
-            2.5 * scale
-          );
-        }
-      };
-
-      drawCheek(
-        cx - 66 * scale,
-        cy + 52 * scale + float,
-        -1
-      );
-
-      drawCheek(
-        cx + 66 * scale,
-        cy + 52 * scale + float,
-        1
-      );
-
-      /*
-       * ---------------------------------------------------------
-       * FACE SCAN LINE
-       * ---------------------------------------------------------
-       */
-
-      const scanTravel =
-        ((time * 0.08) %
-          (faceH + 30 * scale)) -
-        15 * scale;
-
-      ctx.save();
-
-      ctx.beginPath();
-
-      ctx.rect(
-        faceX,
-        faceY,
-        faceW,
-        faceH
-      );
-
-      ctx.clip();
-
-      ctx.strokeStyle =
-        primary.replace(
-          "1)",
-          "0.13)"
-        );
-
-      ctx.lineWidth =
-        1 * scale;
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        faceX,
-        faceY + scanTravel
-      );
-
-      ctx.lineTo(
-        faceX + faceW,
-        faceY + scanTravel
-      );
+      ctx.shadowColor =
+        "rgba(" +
+        primary +
+        ", 0.9)";
 
       ctx.stroke();
 
-      ctx.restore();
-
       /*
-       * ---------------------------------------------------------
-       * SMALL DIGITAL CORNER MARKERS
-       * ---------------------------------------------------------
+       * When the mouth is open, draw a subtle
+       * inner digital opening.
        */
 
-      const marker =
-        16 * scale;
+      if (mouthOpen > 0.12) {
+        ctx.beginPath();
 
-      const offset =
-        9 * scale;
-
-      const drawMarker = (
-        x: number,
-        y: number,
-        sx: number,
-        sy: number
-      ) => {
-        glowLine(
-          [
-            [x, y],
-            [x + sx * marker, y],
-            [x + sx * marker, y + sy * marker],
-          ],
-          primary.replace(
-            "1)",
-            "0.42)"
+        ctx.ellipse(
+          centerX,
+          mouthY +
+            mouthOpen *
+              8 *
+              scale,
+          mouthWidth * 0.25,
+          Math.max(
+            1,
+            mouthDepth * 0.32
           ),
-          primary.replace(
-            "1)",
-            "0.18)"
-          ),
-          0.8 * scale
-        );
-      };
-
-      drawMarker(
-        faceX - offset,
-        faceY + marker,
-        1,
-        -1
-      );
-
-      drawMarker(
-        faceX + faceW + offset,
-        faceY + marker,
-        -1,
-        -1
-      );
-
-      drawMarker(
-        faceX - offset,
-        faceY + faceH - marker,
-        1,
-        1
-      );
-
-      drawMarker(
-        faceX + faceW + offset,
-        faceY + faceH - marker,
-        -1,
-        1
-      );
-
-      /*
-       * ---------------------------------------------------------
-       * STATUS LABEL
-       * ---------------------------------------------------------
-       */
-
-      const status =
-        mode === "no-limits"
-          ? "NO LIMITS"
-          : mode === "listening"
-          ? "LISTENING"
-          : mode === "thinking"
-          ? "THINKING"
-          : mode === "speaking"
-          ? "SPEAKING"
-          : "ONLINE";
-
-      const statusY =
-        faceY + faceH + 45 * scale;
-
-      ctx.save();
-
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      ctx.font =
-        "600 " +
-        Math.max(
-          8,
-          9 * scale
-        ) +
-        "px Arial, sans-serif";
-
-      ctx.fillStyle =
-        primary.replace(
-          "1)",
-          "0.78)"
+          0,
+          0,
+          Math.PI * 2
         );
 
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = primary;
+        ctx.fillStyle =
+          "rgba(0, 0, 0, 0.62)";
 
-      ctx.fillText(
-        status,
-        cx,
-        statusY
-      );
+        ctx.fill();
+
+        ctx.strokeStyle =
+          "rgba(" +
+          primary +
+          ", 0.55)";
+
+        ctx.lineWidth =
+          0.8 * scale;
+
+        ctx.stroke();
+      }
 
       ctx.restore();
 
       /*
-       * ---------------------------------------------------------
-       * ACTIVITY INDICATOR
-       * ---------------------------------------------------------
+       * Tiny click/touch glow.
+       * Still only the eyes and mouth are visible.
        */
 
-      if (
-        mode === "thinking" ||
-        mode === "listening" ||
-        mode === "speaking"
-      ) {
-        const bars =
-          mode === "thinking"
-            ? 5
-            : 4;
-
-        const barWidth =
-          3 * scale;
-
-        const gap =
-          5 * scale;
-
-        const totalWidth =
-          bars * barWidth +
-          (bars - 1) * gap;
-
-        const startX =
-          cx -
-          totalWidth / 2;
-
-        for (let i = 0; i < bars; i++) {
-          const level =
-            5 +
-            Math.abs(
-              Math.sin(
-                time * 0.008 +
-                  i * 0.9
-              )
-            ) *
-              12;
-
-          roundRect(
-            startX +
-              i *
-                (barWidth + gap),
-            statusY +
-              13 * scale -
-              level / 2,
-            barWidth,
-            level,
-            2 * scale
+      if (tapPulse > 0.02) {
+        const gradient =
+          ctx.createRadialGradient(
+            centerX,
+            centerY,
+            10,
+            centerX,
+            centerY,
+            115 * scale
           );
 
-          ctx.fillStyle =
-            primary.replace(
-              "1)",
-              "0.72)"
-            );
+        gradient.addColorStop(
+          0,
+          "rgba(" +
+            primary +
+            ", " +
+            tapPulse * 0.09 +
+            ")"
+        );
 
-          ctx.fill();
-        }
+        gradient.addColorStop(
+          1,
+          "rgba(" +
+            primary +
+            ", 0)"
+        );
+
+        ctx.fillStyle =
+          gradient;
+
+        ctx.fillRect(
+          0,
+          0,
+          width,
+          height
+        );
       }
 
       animationFrame =
-        requestAnimationFrame(draw);
+        requestAnimationFrame(
+          draw
+        );
     };
 
     animationFrame =
-      requestAnimationFrame(draw);
+      requestAnimationFrame(
+        draw
+      );
 
     return () => {
       window.removeEventListener(
@@ -1249,7 +1329,96 @@ export default function EnergyCore({
         animationFrame
       );
     };
-  }, [state]);
+  }, [state, cameraOn]);
+
+  /*
+   * ------------------------------------------------------------
+   * POINTER + TOUCH
+   * ------------------------------------------------------------
+   */
+
+  const updatePointer = (
+    clientX: number,
+    clientY: number
+  ) => {
+    const canvas =
+      canvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    const rect =
+      canvas.getBoundingClientRect();
+
+    const x =
+      ((clientX -
+        rect.left) /
+        rect.width -
+        0.5) *
+      2;
+
+    const y =
+      ((clientY -
+        rect.top) /
+        rect.height -
+        0.5) *
+      2;
+
+    pointerRef.current = {
+      x: Math.max(
+        -1,
+        Math.min(1, x)
+      ),
+      y: Math.max(
+        -1,
+        Math.min(1, y)
+      ),
+    };
+
+    pointerActiveRef.current =
+      true;
+  };
+
+  const handlePointerMove =
+    (
+      event: React.PointerEvent<HTMLCanvasElement>
+    ) => {
+      updatePointer(
+        event.clientX,
+        event.clientY
+      );
+    };
+
+  const handlePointerDown =
+    (
+      event: React.PointerEvent<HTMLCanvasElement>
+    ) => {
+      updatePointer(
+        event.clientX,
+        event.clientY
+      );
+
+      tapPulseRef.current = 1;
+    };
+
+  const handlePointerLeave =
+    () => {
+      pointerActiveRef.current =
+        false;
+    };
+
+  /*
+   * ------------------------------------------------------------
+   * CLEANUP
+   * ------------------------------------------------------------
+   */
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   return (
     <div
@@ -1261,20 +1430,107 @@ export default function EnergyCore({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        pointerEvents: "none",
-        overflow: "visible",
       }}
     >
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: "none",
+        }}
+      />
+
       <canvas
         ref={canvasRef}
-        aria-label="EON digital AI face"
+        aria-label="Interactive EON digital face"
+        onPointerMove={
+          handlePointerMove
+        }
+        onPointerDown={
+          handlePointerDown
+        }
+        onPointerLeave={
+          handlePointerLeave
+        }
         style={{
           display: "block",
           width: "100%",
           height: "100%",
           minHeight: "420px",
+          maxWidth: "620px",
+          cursor: "pointer",
+          touchAction: "none",
         }}
       />
+
+      <button
+        type="button"
+        onClick={toggleCamera}
+        aria-label={
+          cameraOn
+            ? "Turn camera tracking off"
+            : "Turn camera tracking on"
+        }
+        style={{
+          position: "absolute",
+          right: "8px",
+          bottom: "8px",
+          padding:
+            "6px 10px",
+          border:
+            "1px solid rgba(255, 224, 105, 0.28)",
+          borderRadius: "8px",
+          background:
+            cameraOn
+              ? "rgba(255, 224, 105, 0.12)"
+              : "rgba(5, 8, 15, 0.45)",
+          color:
+            cameraOn
+              ? "#fff3ae"
+              : "rgba(255,255,255,0.65)",
+          fontSize: "9px",
+          letterSpacing: "1.5px",
+          fontWeight: 700,
+          cursor: "pointer",
+          backdropFilter:
+            "blur(8px)",
+          zIndex: 5,
+        }}
+      >
+        {cameraOn
+          ? "CAMERA ON"
+          : "CAMERA"}
+      </button>
+
+      {cameraError && (
+        <div
+          style={{
+            position: "absolute",
+            right: "8px",
+            bottom: "42px",
+            maxWidth: "210px",
+            padding:
+              "7px 9px",
+            border:
+              "1px solid rgba(255, 100, 100, 0.3)",
+            borderRadius: "7px",
+            background:
+              "rgba(20, 5, 8, 0.75)",
+            color:
+              "rgba(255, 190, 190, 0.9)",
+            fontSize: "9px",
+            lineHeight: 1.35,
+            textAlign: "right",
+          }}
+        >
+          {cameraError}
+        </div>
+      )}
     </div>
   );
 }
