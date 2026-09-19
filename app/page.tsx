@@ -84,7 +84,7 @@ type CoreState =
   | "listening"
   | "thinking"
   | "speaking"
-  | "alert";
+  | "no-limits";
 
 
 type SpeedInfo = {
@@ -108,7 +108,7 @@ export default function Home() {
 
   const [mode, setMode] =
     useState<
-      "NORMAL" | "ALERT"
+      "NORMAL" | "NO_LIMITS"
     >("NORMAL");
 
 
@@ -126,7 +126,7 @@ export default function Home() {
     useState("");
 
 
-  const [alertBurst, setAlertBurst] =
+  const [modeBurst, setModeBurst] =
     useState(false);
 
 
@@ -401,189 +401,32 @@ export default function Home() {
 
 
   /* =========================================================
-     ALERT SOUND
+     NO LIMITS MODE TRANSITION
      ========================================================= */
 
-  const playAlertSound =
-    () => {
-
-      try {
-
-        const AudioContextClass =
-          window.AudioContext ||
-          (
-            window as typeof window & {
-              webkitAudioContext?:
-                typeof AudioContext;
-            }
-          ).webkitAudioContext;
-
-
-        if (
-          !AudioContextClass
-        ) {
-          return;
-        }
-
-
-        const audioContext =
-          new AudioContextClass();
-
-
-        const now =
-          audioContext.currentTime;
-
-
-        const master =
-          audioContext.createGain();
-
-
-        master.gain.setValueAtTime(
-          0.0001,
-          now
-        );
-
-
-        master.gain.exponentialRampToValueAtTime(
-          0.18,
-          now + 0.03
-        );
-
-
-        master.gain.exponentialRampToValueAtTime(
-          0.0001,
-          now + 0.9
-        );
-
-
-        master.connect(
-          audioContext.destination
-        );
-
-
-        const low =
-          audioContext.createOscillator();
-
-
-        low.type =
-          "sawtooth";
-
-
-        low.frequency.setValueAtTime(
-          80,
-          now
-        );
-
-
-        low.frequency.exponentialRampToValueAtTime(
-          180,
-          now + 0.45
-        );
-
-
-        low.connect(master);
-
-
-        low.start(now);
-
-
-        low.stop(
-          now + 0.85
-        );
-
-
-        const high =
-          audioContext.createOscillator();
-
-
-        high.type =
-          "triangle";
-
-
-        high.frequency.setValueAtTime(
-          420,
-          now + 0.08
-        );
-
-
-        high.frequency.exponentialRampToValueAtTime(
-          760,
-          now + 0.5
-        );
-
-
-        high.connect(master);
-
-
-        high.start(
-          now + 0.08
-        );
-
-
-        high.stop(
-          now + 0.68
-        );
-
-
-        const pulse =
-          audioContext.createOscillator();
-
-
-        pulse.type =
-          "square";
-
-
-        pulse.frequency.setValueAtTime(
-          110,
-          now + 0.55
-        );
-
-
-        pulse.frequency.exponentialRampToValueAtTime(
-          55,
-          now + 0.88
-        );
-
-
-        const pulseGain =
-          audioContext.createGain();
-
-
-        pulseGain.gain.value =
-          0.18;
-
-
-        pulse.connect(
-          pulseGain
-        );
-
-
-        pulseGain.connect(
-          master
-        );
-
-
-        pulse.start(
-          now + 0.55
-        );
-
-
-        pulse.stop(
-          now + 0.88
-        );
-
-
-        setTimeout(() => {
-          audioContext.close();
-        }, 1000);
-
-      } catch {
-        // Visual alert still works.
-      }
-    };
-
-
-  /* =========================================================
+  const playModeSwitchSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioContext = new AudioContextClass();
+      const now = audioContext.currentTime;
+      const master = audioContext.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.12, now + 0.04);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+      master.connect(audioContext.destination);
+      const oscillator = audioContext.createOscillator();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(240, now);
+      oscillator.frequency.exponentialRampToValueAtTime(520, now + 0.35);
+      oscillator.connect(master);
+      oscillator.start(now);
+      oscillator.stop(now + 0.48);
+      window.setTimeout(() => audioContext.close(), 600);
+    } catch {
+      // Visual transition still works.
+    }
+  };  /* =========================================================
      MODE SWITCH
      ========================================================= */
 
@@ -596,39 +439,39 @@ export default function Home() {
           const next =
             current ===
             "NORMAL"
-              ? "ALERT"
+              ? "NO_LIMITS"
               : "NORMAL";
 
 
-          setAlertBurst(true);
+          setModeBurst(true);
 
 
           stopSpeaking();
 
 
           if (
-            next === "ALERT"
+            next === "NO_LIMITS"
           ) {
 
             setCoreState(
-              "alert"
+              "no-limits"
             );
 
 
             setResponse(
-              "HIGH ALERT MODE ACTIVATED"
+              "NO LIMITS MODE ACTIVE"
             );
 
 
-            playAlertSound();
+            playModeSwitchSound();
 
 
             setTimeout(
               () => {
 
                 speak(
-                  "Warning. High alert mode activated.",
-                  "ALERT"
+                  "No Limits mode activated. Operator systems online.",
+                  "NO_LIMITS"
                 );
 
               },
@@ -663,7 +506,7 @@ export default function Home() {
 
           setTimeout(
             () => {
-              setAlertBurst(false);
+              setModeBurst(false);
             },
             1000
           );
@@ -738,26 +581,26 @@ export default function Home() {
 
       if (
         result.intent ===
-        "MODE_ALERT"
+        "MODE_NO_LIMITS"
       ) {
 
         setMode(
-          "ALERT"
+          "NO_LIMITS"
         );
 
 
-        setAlertBurst(
+        setModeBurst(
           true
         );
 
 
         setCoreState(
-          "alert"
+          "no-limits"
         );
 
 
         const message =
-          "HIGH ALERT MODE ACTIVATED";
+          "NO LIMITS MODE ACTIVE";
 
 
         setResponse(
@@ -765,7 +608,7 @@ export default function Home() {
         );
 
 
-        playAlertSound();
+        playModeSwitchSound();
 
 
         rememberInteraction(
@@ -778,8 +621,8 @@ export default function Home() {
           () => {
 
             speak(
-              "Warning. High alert mode activated.",
-              "ALERT"
+              "No Limits mode activated. Operator systems online.",
+              "NO_LIMITS"
             );
 
           },
@@ -789,7 +632,7 @@ export default function Home() {
 
         setTimeout(
           () => {
-            setAlertBurst(false);
+            setModeBurst(false);
           },
           1000
         );
@@ -813,7 +656,7 @@ export default function Home() {
         );
 
 
-        setAlertBurst(
+        setModeBurst(
           true
         );
 
@@ -853,7 +696,7 @@ export default function Home() {
 
         setTimeout(
           () => {
-            setAlertBurst(false);
+            setModeBurst(false);
           },
           1000
         );
@@ -873,9 +716,9 @@ export default function Home() {
       ) {
 
         const statusText =
-          mode === "ALERT"
-            ? "EON is online and operating in high alert mode. Gemini AI brain is connected."
-            : "EON is online and operating in normal mode. Gemini AI brain is connected.";
+          mode === "NO_LIMITS"
+            ? "EON is online and operating in No Limits operator mode. Gemini AI brain is connected."
+            : "EON is online and operating in normal assistant mode. Gemini AI brain is connected.";
 
 
         setResponse(
@@ -922,9 +765,9 @@ export default function Home() {
       ) {
 
         const modeText =
-          mode === "ALERT"
-            ? "EON is currently operating in high alert mode."
-            : "EON is currently operating in normal mode.";
+          mode === "NO_LIMITS"
+            ? "EON is currently operating in No Limits operator mode."
+            : "EON is currently operating in normal assistant mode.";
 
 
         setResponse(
@@ -1050,7 +893,7 @@ export default function Home() {
         );
 
 
-        setAlertBurst(
+        setModeBurst(
           false
         );
 
@@ -1246,7 +1089,7 @@ export default function Home() {
 
 
         setCoreState(
-          "alert"
+          "no-limits"
         );
 
 
@@ -1476,7 +1319,7 @@ export default function Home() {
       );
 
 
-      setAlertBurst(
+      setModeBurst(
         false
       );
 
@@ -1500,8 +1343,8 @@ export default function Home() {
 
     <main
       className={`eon ${
-        mode === "ALERT"
-          ? "alert"
+        mode === "NO_LIMITS"
+          ? "no-limits"
           : ""
       }`}
     >
@@ -1534,7 +1377,7 @@ export default function Home() {
           <span>
             {mode === "NORMAL"
               ? "NORMAL MODE"
-              : "HIGH ALERT"}
+              : "NO LIMITS"}
           </span>
 
         </div>
@@ -1664,11 +1507,11 @@ export default function Home() {
         />
 
 
-        {alertBurst && (
+        {modeBurst && (
 
           <div
-            className={`alertBurst ${
-              mode === "ALERT"
+            className={`modeBurst ${
+              mode === "NO_LIMITS"
                 ? "enteringAlert"
                 : "leavingAlert"
             }`}
