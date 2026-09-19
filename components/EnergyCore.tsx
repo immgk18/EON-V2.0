@@ -12,6 +12,7 @@ export type EnergyCoreState =
 
 type EnergyCoreProps = {
   state?: EnergyCoreState;
+  playfulCommand?: string;
 };
 
 type Reaction = {
@@ -41,6 +42,7 @@ declare global {
 
 export default function EnergyCore({
   state = "idle",
+  playfulCommand = "",
 }: EnergyCoreProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -523,7 +525,20 @@ export default function EnergyCore({
       let playfulAction =
         "curious";
 
-      if (playful && state === "idle") {
+      /*
+       * Explicit chat commands can temporarily override the
+       * automatic personality loop. The parent sends a small
+       * action name; no AI/tool call is required.
+       */
+      if (playful && playfulCommand) {
+        playfulAction = playfulCommand;
+      }
+
+      if (
+        playful &&
+        !playfulCommand &&
+        state === "idle"
+      ) {
         if (playfulLoop >= 7000 && playfulLoop < 11000) {
           playfulAction = "dizzy";
         } else if (
@@ -676,7 +691,10 @@ export default function EnergyCore({
        * Tiny orbital rings make the eyes look like they have
        * spun themselves silly.
        */
-      if (playfulAction === "dizzy") {
+      if (
+        playfulAction === "dizzy" ||
+        playfulAction === "spin"
+      ) {
         const dizzyPulse =
           0.55 +
           Math.sin(actionT * 0.018) * 0.18;
@@ -731,7 +749,11 @@ export default function EnergyCore({
        * DIGITAL HANDS:
        * Two tiny line-art hands wave and play near EON's face.
        */
-      if (playfulAction === "hands") {
+      if (
+        playfulAction === "hands" ||
+        playfulAction === "wave" ||
+        playfulAction === "dance"
+      ) {
         const handT =
           Math.max(0, (playfulLoop - 15000) / 6000);
         const wave =
@@ -822,7 +844,10 @@ export default function EnergyCore({
        * A tiny glowing digital butterfly floats in.
        * EON follows it with its eyes and then admires it.
        */
-      if (playfulAction === "butterfly") {
+      if (
+        playfulAction === "butterfly" ||
+        playfulAction === "admire"
+      ) {
         const butterflyT =
           Math.max(
             0,
@@ -996,7 +1021,10 @@ export default function EnergyCore({
        * SLEEPY:
        * EON slowly droops, blinks, then wakes for the next loop.
        */
-      if (playfulAction === "sleepy") {
+      if (
+        playfulAction === "sleepy" ||
+        playfulAction === "yawn"
+      ) {
         const sleepyT =
           (playfulLoop - 28000) / 4000;
 
@@ -1046,6 +1074,68 @@ export default function EnergyCore({
       }
 
       /*
+       * LAUGH / SURPRISE reactions from chat commands.
+       */
+      if (
+        playfulAction === "laugh" ||
+        playfulAction === "surprised"
+      ) {
+        ctx.save();
+
+        const reactionPulse =
+          0.55 +
+          Math.abs(Math.sin(time * 0.012)) * 0.45;
+
+        ctx.strokeStyle =
+          "rgba(" + bright + ", " +
+          reactionPulse + ")";
+
+        ctx.lineWidth = 1.7 * scale;
+        ctx.shadowBlur = 12 * scale;
+        ctx.shadowColor =
+          "rgba(" + primary + ", 0.8)";
+
+        for (let i = 0; i < 6; i++) {
+          const angle =
+            i * (Math.PI / 3) +
+            time * 0.0007;
+
+          const inner = 88 * scale;
+          const outer =
+            (playfulAction === "surprised"
+              ? 112
+              : 102) * scale;
+
+          ctx.beginPath();
+          ctx.moveTo(
+            cx + Math.cos(angle) * inner,
+            cy + Math.sin(angle) * inner
+          );
+          ctx.lineTo(
+            cx + Math.cos(angle) * outer,
+            cy + Math.sin(angle) * outer
+          );
+          ctx.stroke();
+        }
+
+        ctx.font =
+          Math.max(10, 11 * scale) +
+          "px monospace";
+        ctx.textAlign = "center";
+        ctx.fillStyle =
+          "rgba(" + bright + ", 0.78)";
+        ctx.fillText(
+          playfulAction === "laugh"
+            ? "hehe"
+            : "WHOA!",
+          cx,
+          cy - 94 * scale
+        );
+
+        ctx.restore();
+      }
+
+      /*
        * SIMPLE MOUTH
        */
 
@@ -1076,10 +1166,23 @@ export default function EnergyCore({
           ? Math.sin(yawnProgress * Math.PI)
           : 0;
 
+      const laughAmount =
+        playfulAction === "laugh"
+          ? 0.45 +
+            Math.abs(Math.sin(time * 0.018)) * 0.45
+          : 0;
+
+      const surpriseAmount =
+        playfulAction === "surprised"
+          ? 0.72
+          : 0;
+
       const mouthOpen = Math.max(
         cameraOn ? r.mouth : 0,
         speaking,
-        yawnAmount * 0.95
+        yawnAmount * 0.95,
+        laughAmount,
+        surpriseAmount
       );
 
       const mouthWidth =
