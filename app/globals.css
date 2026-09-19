@@ -17,8 +17,8 @@
   --eon-text: #f5e8a8;
   --eon-muted: rgba(245, 232, 168, 0.52);
 
-  --eon-alert: #ff3b30;
-  --eon-alert-bright: #ff665c;
+  --eon-no-limits: #ff3b30;
+  --eon-no-limits-bright: #ff665c;
 }
 
 /* =========================================================
@@ -227,10 +227,10 @@ input:focus-visible {
 }
 
 /* =========================================================
-   ALERT MODE
+   NO LIMITS MODE
    ========================================================= */
 
-.eon.alert {
+.eon.no-limits {
   --eon-gold: #ff6a5f;
   --eon-gold-bright: #ffb0aa;
   --eon-gold-soft: rgba(255, 70, 60, 0.6);
@@ -247,7 +247,7 @@ input:focus-visible {
     #000;
 }
 
-.eon.alert .spaceGlow {
+.eon.no-limits .spaceGlow {
   background:
     radial-gradient(
       circle,
@@ -649,10 +649,10 @@ input:focus-visible {
 }
 
 /* =========================================================
-   ALERT BURST
+   NO LIMITS TRANSITION
    ========================================================= */
 
-.alertBurst {
+.modeBurst {
   position: absolute;
 
   left: 50%;
@@ -678,8 +678,8 @@ input:focus-visible {
     forwards;
 }
 
-.alertBurst::before,
-.alertBurst::after {
+.modeBurst::before,
+.modeBurst::after {
   content: "";
 
   position: absolute;
@@ -693,24 +693,24 @@ input:focus-visible {
   opacity: 0.5;
 }
 
-.alertBurst::before {
+.modeBurst::before {
   animation:
     eonBurstRing 0.9s ease-out
     forwards;
 }
 
-.alertBurst::after {
+.modeBurst::after {
   animation:
     eonBurstRing 0.65s ease-out
     0.08s
     forwards;
 }
 
-.enteringAlert {
+.enteringNoLimits {
   --eon-gold: #ff4035;
 }
 
-.leavingAlert {
+.leavingNoLimits {
   --eon-gold: #ffd84d;
 }
 
