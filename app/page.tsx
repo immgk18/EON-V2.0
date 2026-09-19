@@ -44,6 +44,8 @@ import {
   type EONAgentId,
 } from "@/lib/agents";
 
+import executeAgentTask from "@/lib/agentExecutor";
+
 
 const tools = [
   {
@@ -1043,34 +1045,66 @@ export default function Home() {
 
       try {
 
-        const aiResult =
-          await askThroughGateway({
-            message: activeAgent && selectedAgent !== "CORE"
-              ? `Use the ${activeAgent.name} for this task. Task: ${currentCommand}`
-              : currentCommand,
+        let finalResponse = "";
+
+        if (
+          destination === "AGENT" ||
+          (activeAgent && selectedAgent !== "CORE")
+        ) {
+          const agentId =
+            selectedAgent !== "CORE"
+              ? selectedAgent
+              : destination === "AGENT"
+                ? "RESEARCH"
+                : "CORE";
+
+          const execution = await executeAgentTask(
+            agentId,
+            currentCommand,
             mode,
-            destination,
-          });
+            destination
+          );
 
+          finalResponse = execution.response;
 
-        setResponse(
-          aiResult.response
-        );
+          setResponse(
+            `${execution.agent.name} COMPLETED • ${finalResponse}`
+          );
 
+          setTerminalLines((lines) => [
+            ...lines.slice(-5),
+            `AGENT ${execution.agent.id} • EXECUTION COMPLETE`,
+            ...execution.steps.map(
+              (step, index) =>
+                `STEP ${index + 1} • ${step}`
+            ),
+          ]);
+        } else {
+          const aiResult =
+            await askThroughGateway({
+              message: currentCommand,
+              mode,
+              destination,
+            });
+
+          finalResponse = aiResult.response;
+
+          setResponse(
+            finalResponse
+          );
+        }
 
         rememberInteraction(
           currentCommand,
-          aiResult.response
+          finalResponse
         );
-
 
         setCoreState(
           "speaking"
         );
 
-
         speak(
-          aiResult.response,
+          finalResponse,
           mode
         );
 
