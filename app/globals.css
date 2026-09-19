@@ -2493,3 +2493,78 @@ input:focus-visible {
     font-size: 7px;
   }
 }
+
+
+/* =========================================================
+   EON DESKTOP — SCROLLABLE SYSTEM RAIL + AGENT LIST
+   ========================================================= */
+
+.systemRail {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--desktop-border) transparent;
+}
+
+.systemRail::-webkit-scrollbar,
+.agentList::-webkit-scrollbar {
+  width: 3px;
+}
+
+.systemRail::-webkit-scrollbar-track,
+.agentList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.systemRail::-webkit-scrollbar-thumb,
+.agentList::-webkit-scrollbar-thumb {
+  background: var(--desktop-border);
+  border-radius: 10px;
+}
+
+.systemRail::-webkit-scrollbar-thumb:hover,
+.agentList::-webkit-scrollbar-thumb:hover {
+  background: var(--desktop-accent);
+}
+
+/* Keep every left-side option reachable when the viewport is short. */
+.systemRail .railButton {
+  flex: 0 0 auto;
+}
+
+/* Agent panel gets its own scroll area instead of pushing the panel
+   beyond the available height. */
+.agentList {
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 3px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--desktop-border) transparent;
+}
+
+.agentCard {
+  flex: 0 0 auto;
+}
+
+@media (max-height: 760px) and (min-width: 701px) {
+  .systemRail {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    gap: 2px;
+  }
+
+  .railTitle {
+    padding-bottom: 6px;
+  }
+
+  .railButton {
+    min-height: 46px;
+  }
+
+  .agentList {
+    max-height: calc(100vh - 190px);
+  }
+}
