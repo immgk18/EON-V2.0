@@ -478,7 +478,7 @@ export default function EnergyCore({
       /*
        * Pointer/touch takes priority.
        */
-      const lookX =
+      const baseLookX =
         pointerRef.current.active
           ? pointerRef.current.x
           : r.lookX;
@@ -492,15 +492,18 @@ export default function EnergyCore({
       const playfulDriftY = Math.sin(time * 0.0024) * 0.028;
 
       const lookX = serious
-        ? (pointerRef.current.active ? pointerRef.current.x : r.lookX)
-        : Math.max(-1, Math.min(1,
-            (pointerRef.current.active ? pointerRef.current.x : r.lookX) +
-            playfulDriftX
-          ));
+        ? baseLookX
+        : Math.max(
+            -1,
+            Math.min(1, baseLookX + playfulDriftX)
+          );
 
       const lookY = serious
         ? baseLookY
-        : Math.max(-1, Math.min(1, baseLookY + playfulDriftY));
+        : Math.max(
+            -1,
+            Math.min(1, baseLookY + playfulDriftY)
+          );
 
       const scale =
         Math.min(width, height) / 420;
