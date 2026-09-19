@@ -46,6 +46,15 @@ import {
 
 import executeAgentTask from "@/lib/agentExecutor";
 
+import {
+  loadChatSessions,
+  ensureActiveChatSession,
+  createChatSession,
+  addChatTurn,
+  setActiveChat,
+  type ChatSession,
+} from "@/lib/chatHistory";
+
 
 const tools = [
   {
@@ -168,6 +177,24 @@ export default function Home() {
         addAssistantMessage(
           assistantMessage
         );
+
+        const session =
+          currentChatId
+            ? addChatTurn(
+                currentChatId,
+                userMessage,
+                assistantMessage
+              )
+            : null;
+
+        if (session) {
+          setChatSessions((sessions) => [
+            session,
+            ...sessions.filter(
+              (chat) => chat.id !== session.id
+            ),
+          ]);
+        }
       }
 
     } catch (error) {
@@ -1386,11 +1413,20 @@ export default function Home() {
 
 
   const [activePanel, setActivePanel] = useState<
-    "SYSTEM" | "CHAT" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS"
+    "SYSTEM" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS"
   >("SYSTEM");
+
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<EONAgentId>("CORE");
+
+  useEffect(() => {
+    const activeChat = ensureActiveChatSession();
+    setCurrentChatId(activeChat.id);
+    setChatSessions(loadChatSessions());
+  }, []);
 
   const [terminalLines, setTerminalLines] = useState<string[]>([
     "EON CORE INITIALIZED",
@@ -1403,7 +1439,7 @@ export default function Home() {
   ]);
 
   const selectPanel = (
-    panel: "SYSTEM" | "CHAT" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS"
+    panel: "SYSTEM" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS"
   ) => {
     setActivePanel(panel);
 
@@ -1416,6 +1452,7 @@ export default function Home() {
       AGENTS: "AGENT ORCHESTRATION PANEL OPEN",
       TOOLS: "TOOLS CONTROL PANEL OPEN",
       CHAT: "CHAT WORKSPACE OPEN",
+      HISTORY: "CHAT HISTORY OPEN",
       COMMANDS: "COMMAND CENTER OPEN",
       VOICE: "VOICE CONTROL PANEL OPEN",
       SETTINGS: "SETTINGS PANEL OPEN",
@@ -1428,6 +1465,38 @@ export default function Home() {
       ...lines.slice(-5),
       `eon@core:~$ open ${panel.toLowerCase()}`,
       panelMessages[panel],
+    ]);
+  };
+
+  const openHistoryChat = (chatId: string) => {
+    const chat = setActiveChat(chatId);
+    if (!chat) return;
+
+    setCurrentChatId(chat.id);
+    setResponse(
+      chat.messages.length > 0
+        ? chat.messages[chat.messages.length - 1].content
+        : ""
+    );
+    setActivePanel("HISTORY");
+    setTerminalLines((lines) => [
+      ...lines.slice(-5),
+      `eon@core:~$ open chat "${chat.title}"`,
+      "CHAT HISTORY • CONVERSATION LOADED",
+    ]);
+  };
+
+  const startNewChat = () => {
+    const chat = createChatSession();
+    setCurrentChatId(chat.id);
+    setChatSessions(loadChatSessions());
+    setResponse("");
+    setCommand("");
+    setActivePanel("CHAT");
+    setTerminalLines((lines) => [
+      ...lines.slice(-5),
+      "eon@core:~$ new chat",
+      "NEW CHAT • READY",
     ]);
   };
 
@@ -1519,6 +1588,7 @@ export default function Home() {
           {[
             ["SYSTEM", "◈"],
             ["CHAT", "▣"],
+            ["HISTORY", "▤"],
             ["CONTEXT", "◇"],
             ["MEMORY", "◎"],
             ["VISION", "◉"],
@@ -1608,11 +1678,72 @@ export default function Home() {
             <span className="panelIndicator">●</span>
           </div>
 
-          <div className="panelBody">            {activePanel === "CHAT" && (
+          <div className="panelBody">            {activePanel === "HISTORY" && (
+              <div className="historyWorkspace">
+                <div className="historyHeaderRow">
+                  <span>PREVIOUS CHATS</span>
+                  <button
+                    type="button"
+                    className="panelAction historyNewButton"
+                    onClick={startNewChat}
+                  >
+                    + NEW CHAT
+                  </button>
+                </div>
+
+                <div className="historyList">
+                  {chatSessions.length === 0 ? (
+                    <div className="chatEmptyState">
+                      NO PREVIOUS CHATS.
+                    </div>
+                  ) : (
+                    chatSessions.map((chat) => (
+                      <button
+                        key={chat.id}
+                        type="button"
+                        className={`historyItem ${
+                          currentChatId === chat.id ? "selected" : ""
+                        }`}
+                        onClick={() => openHistoryChat(chat.id)}
+                      >
+                        <span className="historyItemTitle">
+                          {chat.title}
+                        </span>
+                        <span className="historyItemMeta">
+                          {chat.messages.length} MESSAGES
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activePanel === "CHAT" && (
               <div className="chatWorkspace">
                 <div className="chatWorkspaceHeader">
                   <span>EON RESPONSE</span>
                   <span>{isProcessing ? "PROCESSING" : "READY"}</span>
+                </div>
+
+                <div className="chatConversation">
+                  {(chatSessions.find((chat) => chat.id === currentChatId)?.messages ?? []).map((message) => (
+                    <div
+                      key={message.id}
+                      className={`chatMessage ${
+                        message.role === "user"
+                          ? "userMessage"
+                          : "assistantMessage"
+                      }`}
+                    >
+                      <span className="chatMessageRole">
+                        {message.role === "user" ? "YOU" : "EON"}
+                      </span>
+                      <div className="chatMessageContent">
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="chatResponseBox" aria-live="polite">
