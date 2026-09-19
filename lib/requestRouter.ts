@@ -51,6 +51,7 @@ import {
  */
 
 export type RequestDestination =
+  | "DESIGN"
   | "LOCAL"
   | "AI"
   | "HEAVY_AI"
@@ -146,6 +147,23 @@ const VISION_KEYWORDS = [
   "visual analysis",
 ];
 
+
+const DESIGN_KEYWORDS = [
+  "design a pcb",
+  "design pcb",
+  "create a pcb",
+  "create pcb",
+  "pcb design",
+  "design a circuit board",
+  "design a skyscraper",
+  "design a building",
+  "design a tower",
+  "create a 3d model",
+  "create a cad model",
+  "design in cad",
+  "cad design",
+  "bim design",
+];
 
 const AGENT_KEYWORDS = [
   "create a project",
@@ -285,6 +303,17 @@ function determineDestination(
 
   /*
    * ----------------------------------------------------------
+   * DESIGN
+   * ----------------------------------------------------------
+   */
+
+  if (containsKeyword(normalized, DESIGN_KEYWORDS)) {
+    return "DESIGN";
+  }
+
+
+  /*
+   * ----------------------------------------------------------
    * VISION
    * ----------------------------------------------------------
    */
@@ -418,6 +447,10 @@ function getRoutingReason(
     destination
   ) {
 
+    case "DESIGN":
+      return "Request requires a connected CAD/EDA/BIM design execution adapter.";
+
+
     case "LOCAL":
       return "Request can be handled locally without an AI request.";
 
@@ -542,6 +575,7 @@ export function routeUserRequest(
    */
 
   const requiresAI =
+    destination === "DESIGN" ||
     destination === "AI" ||
     destination === "HEAVY_AI" ||
     destination === "WEB" ||
@@ -550,6 +584,7 @@ export function routeUserRequest(
 
 
   const requiresTool =
+    destination === "DESIGN" ||
     destination === "TOOLS" ||
     destination === "WEB" ||
     destination === "VISION" ||
@@ -605,6 +640,10 @@ export function getRouteLabel(
   switch (
     result.destination
   ) {
+
+    case "DESIGN":
+      return "DESIGN";
+
 
     case "LOCAL":
       return "LOCAL";
@@ -677,6 +716,7 @@ export function getRequestRouterStatus() {
       "online",
 
     destinations: [
+      "DESIGN",
       "LOCAL",
       "AI",
       "HEAVY_AI",
@@ -694,6 +734,7 @@ export function getRequestRouterStatus() {
       visionRouting: true,
       agentRouting: true,
       toolRouting: true,
+      designRouting: true,
     },
 
     execution:
