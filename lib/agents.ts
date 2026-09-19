@@ -8,7 +8,8 @@ export type EONAgentId =
   | "TOOLS"
   | "RESEARCH"
   | "ENGINEERING"
-  | "HARDWARE";
+  | "HARDWARE"
+  | "DESIGN";
 
 export type EONAgent = {
   id: EONAgentId;
@@ -27,6 +28,7 @@ export const EON_AGENTS: EONAgent[] = [
   { id: "RESEARCH", name: "RESEARCH AGENT", description: "Structured multi-step research workflows.", destination: "AGENT", status: "ONLINE" },
   { id: "ENGINEERING", name: "ENGINEERING AGENT", description: "Technical design, debugging and engineering reasoning.", destination: "AGENT", status: "ONLINE" },
   { id: "HARDWARE", name: "HARDWARE AGENT", description: "Hardware, sensors, robotics and integration planning.", destination: "AGENT", status: "ONLINE" },
+  { id: "DESIGN", name: "DESIGN AGENT", description: "CAD, EDA, 3D and BIM design orchestration.", destination: "AGENT", status: "ONLINE" },
 ];
 
 export function getAgent(agentId: EONAgentId): EONAgent {
