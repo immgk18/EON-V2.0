@@ -1563,6 +1563,157 @@ input:focus-visible {
   border-radius: 10px;
 }
 
+
+/* =========================================================
+   CHAT HISTORY
+   ========================================================= */
+
+.historyWorkspace {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+.historyHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--desktop-accent);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+
+.historyNewButton {
+  width: auto;
+  min-height: 28px;
+  padding: 0 9px;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 34%;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.historyItem {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid rgba(255, 216, 77, .08);
+  border-radius: 6px;
+  background: rgba(255, 216, 77, .02);
+  color: rgba(245, 232, 168, .62);
+  text-align: left;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.historyItem:hover,
+.historyItem.selected {
+  border-color: var(--desktop-border);
+  background: var(--desktop-accent-soft);
+  color: var(--desktop-accent);
+  box-shadow: inset 0 0 18px var(--desktop-accent-soft);
+}
+
+.historyItemTitle {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.historyItemMeta {
+  color: rgba(245, 232, 168, .25);
+  font-size: 6px;
+  letter-spacing: .1em;
+}
+
+.historyConversation,
+.chatConversation {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 3px;
+}
+
+.chatMessage {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 216, 77, .07);
+  border-radius: 6px;
+  background: rgba(255, 216, 77, .018);
+}
+
+.userMessage {
+  border-left: 2px solid rgba(255, 216, 77, .28);
+}
+
+.assistantMessage {
+  border-left: 2px solid var(--desktop-accent);
+  background: rgba(255, 216, 77, .025);
+}
+
+.chatMessageRole {
+  color: var(--desktop-accent);
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: .15em;
+}
+
+.chatMessageContent {
+  color: rgba(245, 232, 168, .78);
+  font-size: 9px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.historyConversation::-webkit-scrollbar,
+.chatConversation::-webkit-scrollbar,
+.historyList::-webkit-scrollbar {
+  width: 3px;
+}
+
+.historyConversation::-webkit-scrollbar-thumb,
+.chatConversation::-webkit-scrollbar-thumb,
+.historyList::-webkit-scrollbar-thumb {
+  background: var(--desktop-border);
+  border-radius: 10px;
+}
+
+@media (max-width: 700px) {
+  .historyHeaderRow {
+    font-size: 6px;
+  }
+
+  .historyList {
+    max-height: 30%;
+  }
+
+  .chatMessageContent {
+    font-size: 8px;
+  }
+}
+
 /* =========================================================
    REDUCE MOTION
    ========================================================= */
