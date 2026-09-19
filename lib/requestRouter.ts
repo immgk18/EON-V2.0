@@ -31,8 +31,8 @@
  * - Tool routing foundation
  * - Priority classification
  *
- * This file does NOT execute tools yet.
- * It only decides where a request should go.
+ * Routing is now connected to the EON execution layer for AI, web,
+ * deterministic tools, specialist agents and backend vision endpoints.
  * ============================================================
  */
 
@@ -697,10 +697,10 @@ export function getRequestRouterStatus() {
     },
 
     execution:
-      "routing_only",
+      "connected_execution",
 
     note:
-      "Web, vision, agent and tool destinations are routing foundations and require their respective execution systems to be connected.",
+      "Web grounding, deterministic tools, specialist agents and backend vision execution are connected. Image upload is exposed by the Vision workspace.",
   };
 }
 
