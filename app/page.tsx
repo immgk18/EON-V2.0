@@ -1483,7 +1483,7 @@ export default function Home() {
   ]);
 
   const selectPanel = (
-    panel: "SYSTEM" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS"
+    panel: "SYSTEM" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS" | "DESIGN"
   ) => {
     setActivePanel(panel);
 
@@ -1500,6 +1500,7 @@ export default function Home() {
       COMMANDS: "COMMAND CENTER OPEN",
       VOICE: "VOICE CONTROL PANEL OPEN",
       SETTINGS: "SETTINGS PANEL OPEN",
+      DESIGN: "DESIGN WORKSPACE OPEN",
     };
 
     if (panel !== "CHAT") {
