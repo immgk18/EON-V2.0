@@ -1457,7 +1457,7 @@ export default function Home() {
 
 
   const [activePanel, setActivePanel] = useState<
-    "SYSTEM" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS"
+    "SYSTEM" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS" | "DESIGN"
   >("SYSTEM");
 
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
