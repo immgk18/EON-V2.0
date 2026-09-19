@@ -36,7 +36,13 @@ import {
 import {
   addUserMessage,
   addAssistantMessage,
+  getMemorySummary,
 } from "@/lib/memory";
+
+import {
+  EON_AGENTS,
+  type EONAgentId,
+} from "@/lib/agents";
 
 
 const tools = [
@@ -1336,8 +1342,11 @@ export default function Home() {
 
 
   const [activePanel, setActivePanel] = useState<
-    "SYSTEM" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS"
+    "SYSTEM" | "CHAT" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS"
   >("SYSTEM");
+
+  const [terminalOpen, setTerminalOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<EONAgentId>("CORE");
 
   const [terminalLines, setTerminalLines] = useState<string[]>([
     "EON CORE INITIALIZED",
@@ -1350,7 +1359,7 @@ export default function Home() {
   ]);
 
   const selectPanel = (
-    panel: "SYSTEM" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS"
+    panel: "SYSTEM" | "CHAT" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS"
   ) => {
     setActivePanel(panel);
 
@@ -1362,6 +1371,10 @@ export default function Home() {
       WEB: "WEB INTELLIGENCE PANEL OPEN",
       AGENTS: "AGENT ORCHESTRATION PANEL OPEN",
       TOOLS: "TOOLS CONTROL PANEL OPEN",
+      CHAT: "CHAT WORKSPACE OPEN",
+      COMMANDS: "COMMAND CENTER OPEN",
+      VOICE: "VOICE CONTROL PANEL OPEN",
+      SETTINGS: "SETTINGS PANEL OPEN",
     };
 
     setResponse(panelMessages[panel]);
@@ -1369,6 +1382,17 @@ export default function Home() {
       ...lines.slice(-5),
       `eon@core:~$ open ${panel.toLowerCase()}`,
       panelMessages[panel],
+    ]);
+  };
+
+  const activateAgent = (agentId: EONAgentId) => {
+    setSelectedAgent(agentId);
+    const agent = EON_AGENTS.find((item) => item.id === agentId);
+    setResponse(agent ? `${agent.name} SELECTED • ${agent.description}` : "AGENT SELECTED");
+    setTerminalLines((lines) => [
+      ...lines.slice(-5),
+      `eon@core:~$ agent ${agentId.toLowerCase()}`,
+      agent ? `${agent.name} ONLINE • ROUTE ${agent.destination}` : "AGENT READY",
     ]);
   };
 
@@ -1418,15 +1442,18 @@ export default function Home() {
               type="button"
               className="menuItem"
               onClick={() => {
-                const panel =
-                  item === "Agents"
-                    ? "AGENTS"
-                    : item === "Tools"
-                      ? "TOOLS"
-                      : item === "View"
-                        ? "CONTEXT"
-                        : "SYSTEM";
-                selectPanel(panel);
+                if (item === "File" || item === "Window") {
+                  setTerminalOpen((open) => !open);
+                  setResponse("TERMINAL TOGGLED • EON CHAT REMAINS AVAILABLE");
+                } else if (item === "Edit") {
+                  selectPanel("COMMANDS");
+                } else if (item === "Agents") {
+                  selectPanel("AGENTS");
+                } else if (item === "Tools") {
+                  selectPanel("TOOLS");
+                } else {
+                  selectPanel("CONTEXT");
+                }
               }}
             >
               {item}
@@ -1445,12 +1472,14 @@ export default function Home() {
           <div className="railTitle">SYSTEM</div>
           {[
             ["SYSTEM", "◈"],
+            ["CHAT", "▣"],
             ["CONTEXT", "◇"],
             ["MEMORY", "◎"],
             ["VISION", "◉"],
             ["WEB", "⌁"],
             ["AGENTS", "▦"],
             ["TOOLS", "⚙"],
+            ["COMMANDS", "⌁"],
           ].map(([panel, icon]) => (
             <button
               key={panel}
@@ -1534,7 +1563,41 @@ export default function Home() {
             <span className="panelIndicator">●</span>
           </div>
 
-          <div className="panelBody">
+          <div className="panelBody">            {activePanel === "CHAT" && (
+              <div className="panelStack">
+                <button type="button" className="panelAction" onClick={() => {
+                  setResponse("CHAT READY • TYPE IN THE EON COMMAND BAR");
+                  document.querySelector<HTMLInputElement>('input[aria-label="Ask EON"]')?.focus();
+                }}>FOCUS CHAT</button>
+                <div className="panelNote">EON chat is the main command bar. The terminal is separate and hidden until requested.</div>
+              </div>
+            )}
+
+            {activePanel === "COMMANDS" && (
+              <div className="panelStack">
+                <button type="button" className="panelAction" onClick={() => setResponse(getHelpMessage().toUpperCase())}>SHOW COMMANDS</button>
+                <button type="button" className="panelAction" onClick={resetEON}>RESET EON</button>
+                <button type="button" className="panelAction" onClick={() => { stopSpeaking(); setResponse("SPEECH STOPPED"); }}>STOP SPEECH</button>
+              </div>
+            )}
+
+            {activePanel === "VOICE" && (
+              <div className="panelStack">
+                <button type="button" className="panelAction" onClick={startVoice}>TOGGLE VOICE</button>
+                <button type="button" className="panelAction" onClick={() => { stopSpeaking(); setResponse("VOICE OUTPUT STOPPED"); }}>STOP OUTPUT</button>
+              </div>
+            )}
+
+            {activePanel === "SETTINGS" && (
+              <div className="panelStack">
+                <div className="metricRow"><span>MODE</span><b>{mode}</b></div>
+                <div className="metricRow"><span>TERMINAL</span><b>{terminalOpen ? "OPEN" : "HIDDEN"}</b></div>
+                <button type="button" className="panelAction" onClick={() => setTerminalOpen((open) => !open)}>
+                  {terminalOpen ? "HIDE TERMINAL" : "OPEN TERMINAL"}
+                </button>
+              </div>
+            )}
+
             {activePanel === "SYSTEM" && (
               <>
                 <div className="metricRow"><span>CORE</span><b>ONLINE</b></div>
@@ -1575,9 +1638,14 @@ export default function Home() {
             )}
 
             {activePanel === "AGENTS" && (
-              <div className="panelNote">
-                Agent orchestration panel. Multi-step execution can be surfaced
-                here as EON's operator layer grows.
+              <div className="agentList">
+                {EON_AGENTS.map((agent) => (
+                  <button key={agent.id} type="button" className={`agentCard ${selectedAgent === agent.id ? "selected" : ""}`} onClick={() => activateAgent(agent.id)}>
+                    <span className="agentCardTop"><b>{agent.name}</b><i>● ONLINE</i></span>
+                    <small>{agent.description}</small>
+                    <em>ROUTE • {agent.destination}</em>
+                  </button>
+                ))}
               </div>
             )}
 
@@ -1596,6 +1664,7 @@ export default function Home() {
         </aside>
       </div>
 
+      {terminalOpen && (
       <section className="terminalPanel">
         <div className="terminalHeader">
           <span>EON TERMINAL</span>
@@ -1627,6 +1696,7 @@ export default function Home() {
           />
         </form>
       </section>
+      )}
 
       <footer className="desktopFooter">
         <span>INTELLIGENCE</span>
