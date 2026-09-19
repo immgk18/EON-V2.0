@@ -576,9 +576,18 @@ export default function Home() {
       });
 
 
-      const destination:
+      let destination:
         RequestDestination =
         routerResult.destination;
+
+      const activeAgent =
+        EON_AGENTS.find((agent) => agent.id === selectedAgent);
+
+      if (activeAgent && selectedAgent !== "CORE") {
+        destination = activeAgent.destination === "AI"
+          ? "AI"
+          : activeAgent.destination;
+      }
 
 
       /* -------------------------------------------------------
@@ -1036,7 +1045,9 @@ export default function Home() {
 
         const aiResult =
           await askThroughGateway({
-            message: currentCommand,
+            message: activeAgent && selectedAgent !== "CORE"
+              ? `Use the ${activeAgent.name} for this task. Task: ${currentCommand}`
+              : currentCommand,
             mode,
             destination,
           });
