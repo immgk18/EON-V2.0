@@ -1,6 +1,7 @@
 "use client";
 
 import askThroughGateway from "./modelGateway";
+import { orchestrateEON } from "./eonApi";
 import {
   getAgent,
   type EONAgentId,
@@ -41,7 +42,7 @@ function buildExecutionPrompt(
     "2. Break the task into a small number of concrete steps internally.",
     "3. Execute the reasoning for those steps in order.",
     "4. Do not claim to have used a tool, website, file, camera, API, or hardware device unless it was actually connected and used.",
-    "5. If a required capability is not connected, clearly say so and continue with everything that can be completed using the available AI capability.",
+    "5. If a required capability is not connected, clearly say so and continue with everything that can be completed using the available capability.",
     "6. Return a useful final result, not a description of what you could do.",
     "7. Keep the final response concise unless the user asks for detail.",
     "",
@@ -65,6 +66,12 @@ function extractSteps(response: string): string[] {
     : ["Agent reasoning and task execution completed."];
 }
 
+const ORCHESTRATED_AGENTS: EONAgentId[] = [
+  "RESEARCH",
+  "ENGINEERING",
+  "HARDWARE",
+];
+
 export async function executeAgentTask(
   agentId: EONAgentId,
   task: string,
@@ -78,39 +85,54 @@ export async function executeAgentTask(
     throw new Error("Agent task is empty.");
   }
 
-  const executionDestination =
-    destination || agent.destination;
+  let response: string;
 
-  const result = await askThroughGateway({
-    message: buildExecutionPrompt(
-      agent,
+  if (ORCHESTRATED_AGENTS.includes(agentId)) {
+    const orchestration = await orchestrateEON(
       cleanTask,
-      mode
-    ),
-    mode,
-    destination: executionDestination,
-  });
+      mode,
+      ["CORE", agentId]
+    );
+
+    response = orchestration.response;
+  } else {
+    const executionDestination =
+      destination || agent.destination;
+
+    const result = await askThroughGateway({
+      message: buildExecutionPrompt(
+        agent,
+        cleanTask,
+        mode
+      ),
+      mode,
+      destination: executionDestination,
+    });
+
+    response = result.response;
+  }
 
   return {
     agent,
     task: cleanTask,
     status: "COMPLETED",
-    steps: extractSteps(result.response),
-    response: result.response,
+    steps: extractSteps(response),
+    response,
   };
 }
 
 export function getAgentExecutionStatus() {
   return {
     engine: "EON Agent Execution Engine",
-    version: "1.0.0",
+    version: "2.0.0",
     status: "ONLINE",
     maxSteps: MAX_STEPS,
-    execution: "CONNECTED_TO_MODEL_GATEWAY",
+    execution: "CONNECTED_TO_ORCHESTRATION_AND_MODEL_GATEWAY",
     capabilities: [
       "Agent-specific task context",
       "Goal-oriented reasoning",
       "Step-aware execution",
+      "Multi-role orchestration",
       "Capability boundary reporting",
       "Final result generation",
     ],
