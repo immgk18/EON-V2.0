@@ -1067,9 +1067,8 @@ export default function Home() {
 
           finalResponse = execution.response;
 
-          setResponse(
-            `${execution.agent.name} COMPLETED • ${finalResponse}`
-          );
+          // Chat panel shows ONLY the final answer.
+          setResponse(finalResponse);
 
           setTerminalLines((lines) => [
             ...lines.slice(-5),
@@ -1422,7 +1421,9 @@ export default function Home() {
       SETTINGS: "SETTINGS PANEL OPEN",
     };
 
-    setResponse(panelMessages[panel]);
+    if (panel !== "CHAT") {
+      setResponse(panelMessages[panel]);
+    }
     setTerminalLines((lines) => [
       ...lines.slice(-5),
       `eon@core:~$ open ${panel.toLowerCase()}`,
@@ -1599,7 +1600,6 @@ export default function Home() {
             </form>
           </div>
 
-          {response && <div className="desktopResponse">{response}</div>}
         </section>
 
         <aside className="contextPanel">
@@ -1609,12 +1609,35 @@ export default function Home() {
           </div>
 
           <div className="panelBody">            {activePanel === "CHAT" && (
-              <div className="panelStack">
-                <button type="button" className="panelAction" onClick={() => {
-                  setResponse("CHAT READY • TYPE IN THE EON COMMAND BAR");
-                  document.querySelector<HTMLInputElement>('input[aria-label="Ask EON"]')?.focus();
-                }}>FOCUS CHAT</button>
-                <div className="panelNote">EON chat is the main command bar. The terminal is separate and hidden until requested.</div>
+              <div className="chatWorkspace">
+                <div className="chatWorkspaceHeader">
+                  <span>EON RESPONSE</span>
+                  <span>{isProcessing ? "PROCESSING" : "READY"}</span>
+                </div>
+
+                <div className="chatResponseBox" aria-live="polite">
+                  {response ? (
+                    <div className="chatResponseText">
+                      {response}
+                    </div>
+                  ) : (
+                    <div className="chatEmptyState">
+                      ASK EON SOMETHING.
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className="panelAction"
+                  onClick={() => {
+                    document.querySelector<HTMLInputElement>(
+                      'input[aria-label="Ask EON"]'
+                    )?.focus();
+                  }}
+                >
+                  FOCUS COMMAND
+                </button>
               </div>
             )}
 
