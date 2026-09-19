@@ -1,17 +1,20 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ai import ask_eon
 from brain import get_brain_info
+from orchestration import orchestrate
+from tools import run_tool_request
+from vision import analyze_image
 
 EON_NAME = "EON"
 EON_SYSTEM = "Enhanced Operations Network"
-EON_VERSION = "3.1.0"
+EON_VERSION = "4.0.0"
 
 app = FastAPI(
     title="EON — Enhanced Operations Network",
-    description="EON 2.0 Intelligence Backend",
+    description="EON Intelligence and Execution Backend",
     version=EON_VERSION,
 )
 
@@ -38,6 +41,36 @@ class ChatResponse(BaseModel):
     mode: str
 
 
+class ToolRequest(BaseModel):
+    message: str
+
+
+class VisionRequest(BaseModel):
+    image_base64: str
+    mime_type: str
+    prompt: str = "Analyze this image and describe the important visual information."
+
+
+class VisionResponse(BaseModel):
+    response: str
+    status: str
+    model: str
+
+
+class OrchestrationRequest(BaseModel):
+    task: str
+    mode: str = "NORMAL"
+    memory_context: str = ""
+    agents: list[str] = Field(default_factory=list)
+
+
+class OrchestrationResponse(BaseModel):
+    response: str
+    status: str
+    model: str
+    agents: list[str]
+
+
 @app.get("/")
 async def root():
     return {
@@ -45,7 +78,13 @@ async def root():
         "system": EON_SYSTEM,
         "version": EON_VERSION,
         "status": "online",
-        "web_intelligence": True,
+        "capabilities": {
+            "chat": True,
+            "web_grounding": True,
+            "vision": True,
+            "tools": True,
+            "orchestration": True,
+        },
     }
 
 
@@ -56,7 +95,13 @@ async def health():
         "system": EON_SYSTEM,
         "version": EON_VERSION,
         "status": "healthy",
-        "web_intelligence": True,
+        "capabilities": {
+            "chat": True,
+            "web_grounding": True,
+            "vision": True,
+            "tools": True,
+            "orchestration": True,
+        },
     }
 
 
@@ -70,22 +115,11 @@ async def chat(request: ChatRequest):
     message = request.message.strip()
 
     if not message:
-        raise HTTPException(
-            status_code=400,
-            detail="No message received.",
-        )
+        raise HTTPException(status_code=400, detail="No message received.")
 
-    mode = (
-        request.mode or "NORMAL"
-    ).strip().upper()
-
-    memory_context = (
-        request.memory_context or ""
-    ).strip()
-
-    destination = (
-        request.destination or "AI"
-    ).strip().upper()
+    mode = (request.mode or "NORMAL").strip().upper()
+    memory_context = (request.memory_context or "").strip()
+    destination = (request.destination or "AI").strip().upper()
 
     try:
         result = await ask_eon(
@@ -97,27 +131,74 @@ async def chat(request: ChatRequest):
 
         return ChatResponse(
             response=result["response"],
-            status=result.get(
-                "status",
-                "success",
-            ),
-            model=result.get(
-                "model",
-                "eon-ai",
-            ),
-            mode=result.get(
-                "mode",
-                mode,
-            ),
+            status=result.get("status", "success"),
+            model=result.get("model", "eon-ai"),
+            mode=result.get("mode", mode),
         )
 
     except Exception as error:
         print("EON CHAT ERROR:", error)
+        raise HTTPException(status_code=503, detail=str(error))
 
-        raise HTTPException(
-            status_code=503,
-            detail=str(error),
+
+@app.post("/api/tool")
+async def tool(request: ToolRequest):
+    try:
+        return run_tool_request(request.message)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+    except Exception as error:
+        print("EON TOOL ERROR:", error)
+        raise HTTPException(status_code=500, detail="Tool execution failed.")
+
+
+@app.post("/api/vision", response_model=VisionResponse)
+async def vision(request: VisionRequest):
+    try:
+        result = await analyze_image(
+            image_base64=request.image_base64,
+            mime_type=request.mime_type,
+            prompt=request.prompt,
         )
+
+        return VisionResponse(
+            response=result["response"],
+            status=result.get("status", "vision_complete"),
+            model=result.get("model", "eon-vision"),
+        )
+
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+    except Exception as error:
+        print("EON VISION ERROR:", error)
+        raise HTTPException(status_code=503, detail=str(error))
+
+
+@app.post("/api/orchestrate", response_model=OrchestrationResponse)
+async def orchestrate_request(request: OrchestrationRequest):
+    task = request.task.strip()
+
+    if not task:
+        raise HTTPException(status_code=400, detail="No task received.")
+
+    try:
+        result = await orchestrate(
+            task=task,
+            mode=request.mode,
+            memory_context=request.memory_context,
+            agents=request.agents,
+        )
+
+        return OrchestrationResponse(
+            response=result["response"],
+            status=result.get("status", "orchestration_complete"),
+            model=result.get("model", "eon-ai"),
+            agents=result.get("agents", []),
+        )
+
+    except Exception as error:
+        print("EON ORCHESTRATION ERROR:", error)
+        raise HTTPException(status_code=503, detail=str(error))
 
 
 if __name__ == "__main__":
