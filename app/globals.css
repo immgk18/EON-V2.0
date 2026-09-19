@@ -1929,15 +1929,26 @@ input:focus-visible {
 .coreViewport {
   position: relative;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  min-height: 0;
+  height: 100%;
   overflow: hidden;
+  isolation: isolate;
 }
 
+/*
+ * Keep the EON stage in a fixed viewport.
+ * Panel changes must NEVER participate in the vertical
+ * layout calculation of the core. This prevents the face
+ * from jumping up/down when the left rail selection changes.
+ */
 .coreHeader {
+  position: absolute;
+  top: 0;
+  left: 50%;
   width: min(760px, 82%);
   height: 35px;
+  transform: translateX(-50%);
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1954,15 +1965,22 @@ input:focus-visible {
 }
 
 .coreCanvas {
-  position: relative;
+  position: absolute;
+  top: 35px;
+  bottom: 72px;
+  left: 50%;
   width: min(760px, 82%);
-  flex: 1;
-  min-height: 260px;
+  height: auto;
+  transform: translateX(-50%);
+  min-height: 0;
+  overflow: hidden;
+  z-index: 10;
 }
 
 .coreCanvas > div:first-child {
   width: 100%;
   height: 100%;
+  min-height: 0 !important;
 }
 
 .corePrompt {
@@ -2065,6 +2083,8 @@ input:focus-visible {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   border-left: 1px solid var(--desktop-border);
   background: var(--desktop-panel);
   backdrop-filter: blur(18px);
@@ -2089,9 +2109,11 @@ input:focus-visible {
 }
 
 .panelBody {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 14px;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .metricRow {
@@ -2413,8 +2435,13 @@ input:focus-visible {
     display: none;
   }
 
-  .coreHeader,
+  .coreHeader {
+    width: 94%;
+  }
+
   .coreCanvas {
+    top: 35px;
+    bottom: 60px;
     width: 94%;
   }
 
@@ -2566,5 +2593,32 @@ input:focus-visible {
 
   .agentList {
     max-height: calc(100vh - 190px);
+  }
+}
+
+
+/* =========================================================
+   EON CORE — FIXED ALIGNMENT HARDENING
+   ========================================================= */
+
+.eonDesktop .coreViewport,
+.eonDesktop .coreCanvas,
+.eonDesktop .contextPanel,
+.eonDesktop .panelBody {
+  min-height: 0;
+}
+
+.eonDesktop .coreViewport {
+  height: 100%;
+  contain: layout paint;
+}
+
+.eonDesktop .coreCanvas {
+  contain: layout paint;
+}
+
+@media (max-width: 700px) {
+  .eonDesktop .coreCanvas {
+    bottom: 60px;
   }
 }
