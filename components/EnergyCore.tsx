@@ -7,20 +7,19 @@ export type EnergyCoreState =
   | "listening"
   | "thinking"
   | "speaking"
-  | "no-limits";
+  | "no-limits"
+  | "alert";
 
 type EnergyCoreProps = {
   state?: EnergyCoreState;
 };
 
-type Particle = {
-  angle: number;
-  radius: number;
-  speed: number;
-  size: number;
-  alpha: number;
-  orbit: number;
-};
+type DigitalFaceMode =
+  | "idle"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "no-limits";
 
 export default function EnergyCore({
   state = "idle",
@@ -41,140 +40,92 @@ export default function EnergyCore({
     }
 
     let animationFrame = 0;
-
     let width = 0;
     let height = 0;
     let dpr = 1;
-
-    const particles: Particle[] = [];
-
-    const particleCount = 170;
-
-    for (let i = 0; i < particleCount; i++) {
-      particles.push({
-        angle: Math.random() * Math.PI * 2,
-        radius: 0.25 + Math.random() * 0.7,
-        speed:
-          (0.00025 + Math.random() * 0.0008) *
-          (Math.random() > 0.5 ? 1 : -1),
-        size: 0.7 + Math.random() * 2,
-        alpha: 0.2 + Math.random() * 0.8,
-        orbit: 0.7 + Math.random() * 0.6,
-      });
-    }
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
 
       width = rect.width;
       height = rect.height;
-
       dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       canvas.width = Math.max(1, Math.floor(width * dpr));
       canvas.height = Math.max(1, Math.floor(height * dpr));
 
-      ctx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0
-      );
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
     resize();
-
     window.addEventListener("resize", resize);
 
-    const getModeValues = () => {
-      if (state === "no-limits") {
-        return {
-          core: "rgba(255, 45, 45, 1)",
-          bright: "rgba(255, 130, 130, 1)",
-          glow: "rgba(255, 35, 35, 0.35)",
-          ring: "rgba(255, 55, 55, 0.65)",
-        };
-      }
-
-      if (state === "thinking") {
-        return {
-          core: "rgba(255, 205, 50, 1)",
-          bright: "rgba(255, 245, 160, 1)",
-          glow: "rgba(255, 205, 50, 0.42)",
-          ring: "rgba(255, 215, 70, 0.75)",
-        };
-      }
-
-      if (state === "speaking") {
-        return {
-          core: "rgba(255, 215, 65, 1)",
-          bright: "rgba(255, 250, 190, 1)",
-          glow: "rgba(255, 215, 65, 0.48)",
-          ring: "rgba(255, 220, 85, 0.85)",
-        };
+    const getMode = (): DigitalFaceMode => {
+      if (state === "no-limits" || state === "alert") {
+        return "no-limits";
       }
 
       if (state === "listening") {
-        return {
-          core: "rgba(255, 225, 80, 1)",
-          bright: "rgba(255, 250, 180, 1)",
-          glow: "rgba(255, 225, 80, 0.45)",
-          ring: "rgba(255, 225, 90, 0.85)",
-        };
+        return "listening";
       }
 
-      return {
-        core: "rgba(255, 215, 55, 1)",
-        bright: "rgba(255, 245, 155, 1)",
-        glow: "rgba(255, 210, 50, 0.32)",
-        ring: "rgba(255, 215, 70, 0.65)",
-      };
+      if (state === "thinking") {
+        return "thinking";
+      }
+
+      if (state === "speaking") {
+        return "speaking";
+      }
+
+      return "idle";
     };
 
-    const drawGlow = (
+    const roundRect = (
       x: number,
       y: number,
-      radius: number,
-      color: string,
-      alpha: number
+      w: number,
+      h: number,
+      r: number
     ) => {
-      const gradient = ctx.createRadialGradient(
-        x,
-        y,
-        0,
-        x,
-        y,
-        radius
-      );
-
-      gradient.addColorStop(
-        0,
-        color.replace("1)", `${alpha})`)
-      );
-
-      gradient.addColorStop(
-        0.35,
-        color.replace("1)", `${alpha * 0.35})`)
-      );
-
-      gradient.addColorStop(
-        1,
-        color.replace("1)", "0)")
-      );
-
-      ctx.fillStyle = gradient;
+      const radius = Math.min(r, w / 2, h / 2);
 
       ctx.beginPath();
-      ctx.arc(
-        x,
-        y,
-        radius,
-        0,
-        Math.PI * 2
-      );
-      ctx.fill();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    };
+
+    const glowLine = (
+      points: Array<[number, number]>,
+      color: string,
+      glow: string,
+      lineWidth = 1.5
+    ) => {
+      ctx.save();
+
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = glow;
+      ctx.stroke();
+
+      ctx.restore();
     };
 
     const draw = (time: number) => {
@@ -183,664 +134,1010 @@ export default function EnergyCore({
         return;
       }
 
-      const colors = getModeValues();
+      const mode = getMode();
 
-      ctx.clearRect(
-        0,
-        0,
-        width,
-        height
-      );
+      const isRed = mode === "no-limits";
 
-      const centerX = width / 2;
-      const centerY = height / 2;
+      const primary = isRed
+        ? "rgba(255, 105, 105, 1)"
+        : "rgba(255, 222, 105, 1)";
 
-      const baseSize =
-        Math.min(width, height) * 0.27;
+      const bright = isRed
+        ? "rgba(255, 225, 225, 1)"
+        : "rgba(255, 250, 205, 1)";
 
-      const pulse =
-        1 +
-        Math.sin(time * 0.002) * 0.025;
+      const soft = isRed
+        ? "rgba(255, 70, 70, 0.22)"
+        : "rgba(255, 215, 80, 0.20)";
 
-      const activePulse =
-        state === "listening"
-          ? 1 +
-            Math.sin(time * 0.009) * 0.075
-          : state === "thinking"
-          ? 1 +
-            Math.sin(time * 0.006) * 0.055
-          : state === "speaking"
-          ? 1 +
-            Math.sin(time * 0.012) * 0.09
-          : state === "no-limits"
-          ? 1 +
-            Math.sin(time * 0.010) * 0.065
-          : pulse;
+      const faint = isRed
+        ? "rgba(255, 80, 80, 0.10)"
+        : "rgba(255, 220, 100, 0.08)";
 
-      const coreRadius =
-        baseSize * activePulse;
+      ctx.clearRect(0, 0, width, height);
 
-      /* =========================================================
-         CENTRAL ATMOSPHERE
-         ========================================================= */
+      const cx = width / 2;
+      const cy = height / 2 - 18;
 
-      drawGlow(
-        centerX,
-        centerY,
-        coreRadius * 2.9,
-        colors.core,
-        state === "no-limits"
-          ? 0.22
-          : 0.18
-      );
+      const scale = Math.min(width, height) / 420;
 
-      drawGlow(
-        centerX,
-        centerY,
-        coreRadius * 1.65,
-        colors.core,
-        state === "no-limits"
-          ? 0.24
-          : 0.22
-      );
+      const float =
+        Math.sin(time * 0.0018) * 3;
 
-      /* =========================================================
-         LARGE ORBIT RINGS
-         ========================================================= */
+      const faceW = 174 * scale;
+      const faceH = 202 * scale;
 
-      const ringCount = 9;
+      const faceX = cx - faceW / 2;
+      const faceY = cy - faceH / 2 + float;
 
-      for (let i = 0; i < ringCount; i++) {
-        const radius =
-          coreRadius *
-          (1.18 + i * 0.23);
+      /*
+       * ---------------------------------------------------------
+       * DIGITAL AMBIENCE
+       * ---------------------------------------------------------
+       * No energy orbits. Only small UI particles around EON.
+       */
 
-        const rotation =
-          time *
-            0.00012 *
-            (i % 2 === 0 ? 1 : -1);
+      for (let i = 0; i < 34; i++) {
+        const angle =
+          i * 2.399 + time * 0.00008;
 
-        ctx.save();
+        const distance =
+          (135 + (i % 7) * 22) * scale;
 
-        ctx.translate(
-          centerX,
-          centerY
-        );
+        const px =
+          cx +
+          Math.cos(angle) * distance;
 
-        ctx.rotate(rotation);
+        const py =
+          cy +
+          Math.sin(angle) *
+            distance *
+            0.78;
+
+        const alpha =
+          0.18 +
+          0.18 *
+            Math.sin(
+              time * 0.002 + i
+            );
 
         ctx.beginPath();
-
-        ctx.ellipse(
-          0,
-          0,
-          radius,
-          radius *
-            (0.72 + i * 0.018),
-          0,
+        ctx.arc(
+          px,
+          py,
+          (i % 3 === 0 ? 1.8 : 1) * scale,
           0,
           Math.PI * 2
         );
 
-        ctx.strokeStyle =
-          colors.ring.replace(
-            "0.65",
-            `${0.09 + i * 0.018}`
-          );
+        ctx.fillStyle = isRed
+          ? "rgba(255, 90, 90, " + alpha + ")"
+          : "rgba(255, 220, 100, " + alpha + ")";
 
-        ctx.lineWidth =
-          i === 0 ? 1.5 : 0.8;
-
-        ctx.shadowBlur =
-          i < 3 ? 12 : 5;
-
-        ctx.shadowColor =
-          colors.core;
-
-        ctx.stroke();
-
-        ctx.restore();
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = primary;
+        ctx.fill();
       }
 
-      /* =========================================================
-         FAST ORBITAL ARCS
-         ========================================================= */
+      /*
+       * ---------------------------------------------------------
+       * DIGITAL HEAD SHADOW
+       * ---------------------------------------------------------
+       */
 
-      for (let i = 0; i < 5; i++) {
-        const radius =
-          coreRadius *
-          (1.42 + i * 0.26);
+      const headGlow =
+        ctx.createRadialGradient(
+          cx,
+          cy + float,
+          faceW * 0.1,
+          cx,
+          cy + float,
+          faceW * 1.1
+        );
 
-        const rotation =
-          time *
-            0.00065 *
-            (i % 2 === 0 ? 1 : -1);
+      headGlow.addColorStop(
+        0,
+        soft
+      );
 
+      headGlow.addColorStop(
+        0.55,
+        faint
+      );
+
+      headGlow.addColorStop(
+        1,
+        "rgba(0,0,0,0)"
+      );
+
+      ctx.fillStyle = headGlow;
+      ctx.beginPath();
+
+      ctx.ellipse(
+        cx,
+        cy + float,
+        faceW * 1.02,
+        faceH * 0.82,
+        0,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+
+      /*
+       * ---------------------------------------------------------
+       * NECK
+       * ---------------------------------------------------------
+       */
+
+      ctx.fillStyle =
+        "rgba(8, 11, 19, 0.98)";
+
+      roundRect(
+        cx - 34 * scale,
+        faceY + faceH - 8 * scale,
+        68 * scale,
+        42 * scale,
+        18 * scale
+      );
+
+      ctx.fill();
+
+      ctx.strokeStyle =
+        isRed
+          ? "rgba(255, 100, 100, 0.48)"
+          : "rgba(255, 220, 110, 0.48)";
+
+      ctx.lineWidth = 1 * scale;
+      ctx.stroke();
+
+      /*
+       * ---------------------------------------------------------
+       * FACE
+       * ---------------------------------------------------------
+       */
+
+      const faceGradient =
+        ctx.createLinearGradient(
+          faceX,
+          faceY,
+          faceX + faceW,
+          faceY + faceH
+        );
+
+      faceGradient.addColorStop(
+        0,
+        "rgba(34, 38, 50, 0.98)"
+      );
+
+      faceGradient.addColorStop(
+        0.55,
+        "rgba(13, 17, 26, 0.99)"
+      );
+
+      faceGradient.addColorStop(
+        1,
+        "rgba(5, 8, 14, 1)"
+      );
+
+      ctx.fillStyle = faceGradient;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        cx,
+        faceY
+      );
+
+      ctx.bezierCurveTo(
+        faceX + faceW * 0.78,
+        faceY,
+        faceX + faceW,
+        faceY + faceH * 0.22,
+        faceX + faceW * 0.92,
+        faceY + faceH * 0.63
+      );
+
+      ctx.bezierCurveTo(
+        faceX + faceW * 0.84,
+        faceY + faceH * 0.88,
+        cx + faceW * 0.25,
+        faceY + faceH,
+        cx,
+        faceY + faceH * 0.97
+      );
+
+      ctx.bezierCurveTo(
+        cx - faceW * 0.25,
+        faceY + faceH,
+        faceX + faceW * 0.16,
+        faceY + faceH * 0.88,
+        faceX + faceW * 0.08,
+        faceY + faceH * 0.63
+      );
+
+      ctx.bezierCurveTo(
+        faceX,
+        faceY + faceH * 0.22,
+        faceX + faceW * 0.22,
+        faceY,
+        cx,
+        faceY
+      );
+
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle =
+        isRed
+          ? "rgba(255, 110, 110, 0.70)"
+          : "rgba(255, 225, 120, 0.68)";
+
+      ctx.lineWidth =
+        1.25 * scale;
+
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = primary;
+      ctx.stroke();
+
+      /*
+       * ---------------------------------------------------------
+       * DIGITAL FACE GRID
+       * ---------------------------------------------------------
+       */
+
+      ctx.save();
+
+      ctx.globalAlpha = 0.12;
+
+      ctx.strokeStyle = primary;
+      ctx.lineWidth = 0.45 * scale;
+
+      for (
+        let x = faceX;
+        x <= faceX + faceW;
+        x += 14 * scale
+      ) {
+        ctx.beginPath();
+        ctx.moveTo(x, faceY + 8 * scale);
+        ctx.lineTo(
+          x,
+          faceY + faceH - 8 * scale
+        );
+        ctx.stroke();
+      }
+
+      for (
+        let y = faceY;
+        y <= faceY + faceH;
+        y += 14 * scale
+      ) {
+        ctx.beginPath();
+        ctx.moveTo(faceX + 8 * scale, y);
+        ctx.lineTo(
+          faceX + faceW - 8 * scale,
+          y
+        );
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      /*
+       * ---------------------------------------------------------
+       * HAIR
+       * ---------------------------------------------------------
+       */
+
+      const hairColor =
+        "rgba(4, 7, 14, 0.99)";
+
+      ctx.fillStyle = hairColor;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        faceX + 9 * scale,
+        faceY + 62 * scale
+      );
+
+      ctx.bezierCurveTo(
+        faceX + 2 * scale,
+        faceY + 20 * scale,
+        faceX + 34 * scale,
+        faceY - 18 * scale,
+        cx - 42 * scale,
+        faceY + 2 * scale
+      );
+
+      ctx.lineTo(
+        cx - 25 * scale,
+        faceY - 22 * scale
+      );
+
+      ctx.lineTo(
+        cx - 6 * scale,
+        faceY + 1 * scale
+      );
+
+      ctx.lineTo(
+        cx + 10 * scale,
+        faceY - 29 * scale
+      );
+
+      ctx.lineTo(
+        cx + 24 * scale,
+        faceY - 1 * scale
+      );
+
+      ctx.lineTo(
+        cx + 53 * scale,
+        faceY - 20 * scale
+      );
+
+      ctx.lineTo(
+        cx + 45 * scale,
+        faceY + 13 * scale
+      );
+
+      ctx.bezierCurveTo(
+        faceX + faceW - 16 * scale,
+        faceY + 6 * scale,
+        faceX + faceW + 2 * scale,
+        faceY + 38 * scale,
+        faceX + faceW - 10 * scale,
+        faceY + 72 * scale
+      );
+
+      ctx.bezierCurveTo(
+        faceX + faceW - 40 * scale,
+        faceY + 52 * scale,
+        faceX + 27 * scale,
+        faceY + 55 * scale,
+        faceX + 9 * scale,
+        faceY + 62 * scale
+      );
+
+      ctx.closePath();
+      ctx.fill();
+
+      /*
+       * Hair digital highlights
+       */
+
+      glowLine(
+        [
+          [
+            cx - 70 * scale,
+            faceY + 36 * scale,
+          ],
+          [
+            cx - 48 * scale,
+            faceY + 4 * scale,
+          ],
+          [
+            cx - 25 * scale,
+            faceY - 4 * scale,
+          ],
+        ],
+        primary.replace("1)", "0.42)"),
+        primary.replace("1)", "0.25)"),
+        1.2 * scale
+      );
+
+      glowLine(
+        [
+          [
+            cx - 4 * scale,
+            faceY + 2 * scale,
+          ],
+          [
+            cx + 9 * scale,
+            faceY - 18 * scale,
+          ],
+          [
+            cx + 23 * scale,
+            faceY + 4 * scale,
+          ],
+        ],
+        primary.replace("1)", "0.52)"),
+        primary.replace("1)", "0.25)"),
+        1.2 * scale
+      );
+
+      glowLine(
+        [
+          [
+            cx + 30 * scale,
+            faceY + 5 * scale,
+          ],
+          [
+            cx + 53 * scale,
+            faceY - 8 * scale,
+          ],
+          [
+            cx + 62 * scale,
+            faceY + 31 * scale,
+          ],
+        ],
+        primary.replace("1)", "0.40)"),
+        primary.replace("1)", "0.25)"),
+        1.2 * scale
+      );
+
+      /*
+       * ---------------------------------------------------------
+       * EYEBROWS
+       * ---------------------------------------------------------
+       */
+
+      glowLine(
+        [
+          [
+            cx - 58 * scale,
+            cy - 13 * scale + float,
+          ],
+          [
+            cx - 32 * scale,
+            cy - 20 * scale + float,
+          ],
+          [
+            cx - 13 * scale,
+            cy - 16 * scale + float,
+          ],
+        ],
+        primary,
+        primary,
+        2 * scale
+      );
+
+      glowLine(
+        [
+          [
+            cx + 13 * scale,
+            cy - 16 * scale + float,
+          ],
+          [
+            cx + 32 * scale,
+            cy - 20 * scale + float,
+          ],
+          [
+            cx + 58 * scale,
+            cy - 13 * scale + float,
+          ],
+        ],
+        primary,
+        primary,
+        2 * scale
+      );
+
+      /*
+       * ---------------------------------------------------------
+       * EYES
+       * ---------------------------------------------------------
+       */
+
+      const eyeY =
+        cy + 16 * scale + float;
+
+      const eyeDistance =
+        39 * scale;
+
+      const eyeW =
+        46 * scale;
+
+      const eyeH =
+        31 * scale;
+
+      const blink =
+        mode === "speaking"
+          ? 1
+          : Math.sin(
+              time * 0.00075
+            ) > 0.985
+          ? 0.12
+          : 1;
+
+      const drawEye = (
+        eyeX: number,
+        flip = false
+      ) => {
         ctx.save();
 
         ctx.translate(
-          centerX,
-          centerY
+          eyeX,
+          eyeY
         );
 
-        ctx.rotate(rotation);
+        ctx.scale(
+          1,
+          blink
+        );
+
+        /*
+         * Outer digital eye.
+         */
 
         ctx.beginPath();
 
-        ctx.arc(
-          0,
-          0,
-          radius,
-          -0.55,
-          0.72
+        ctx.moveTo(
+          -eyeW / 2,
+          0
         );
+
+        ctx.quadraticCurveTo(
+          -eyeW * 0.18,
+          -eyeH / 2,
+          0,
+          -eyeH * 0.42
+        );
+
+        ctx.quadraticCurveTo(
+          eyeW * 0.18,
+          -eyeH / 2,
+          eyeW / 2,
+          0
+        );
+
+        ctx.quadraticCurveTo(
+          eyeW * 0.18,
+          eyeH / 2,
+          0,
+          eyeH * 0.42
+        );
+
+        ctx.quadraticCurveTo(
+          -eyeW * 0.18,
+          eyeH / 2,
+          -eyeW / 2,
+          0
+        );
+
+        ctx.closePath();
+
+        ctx.fillStyle =
+          "rgba(2, 5, 10, 0.92)";
+
+        ctx.fill();
 
         ctx.strokeStyle =
-          colors.ring.replace(
-            "0.65",
-            "0.38"
-          );
+          primary;
 
         ctx.lineWidth =
-          i === 0 ? 1.7 : 1;
+          1.35 * scale;
 
         ctx.shadowBlur = 12;
-        ctx.shadowColor =
-          colors.core;
-
+        ctx.shadowColor = primary;
         ctx.stroke();
 
-        ctx.restore();
-      }
+        /*
+         * Iris.
+         */
 
-      /* =========================================================
-         ORBIT PARTICLES
-         ========================================================= */
+        const irisSize =
+          10 * scale;
 
-      for (const particle of particles) {
-        particle.angle +=
-          particle.speed *
-          16;
+        const irisGradient =
+          ctx.createRadialGradient(
+            0,
+            0,
+            0,
+            0,
+            0,
+            irisSize * 1.8
+          );
 
-        const radius =
-          coreRadius *
-          (1.2 +
-            particle.radius *
-              2.2);
+        irisGradient.addColorStop(
+          0,
+          bright
+        );
 
-        const px =
-          centerX +
-          Math.cos(
-            particle.angle
-          ) *
-            radius;
+        irisGradient.addColorStop(
+          0.35,
+          primary
+        );
 
-        const py =
-          centerY +
-          Math.sin(
-            particle.angle
-          ) *
-            radius *
-            particle.orbit;
+        irisGradient.addColorStop(
+          1,
+          "rgba(0,0,0,0)"
+        );
 
-        const twinkle =
-          0.45 +
-          0.55 *
-            Math.sin(
-              time *
-                0.002 +
-                particle.angle
-            );
+        ctx.fillStyle =
+          irisGradient;
 
         ctx.beginPath();
 
         ctx.arc(
-          px,
-          py,
-          particle.size,
+          0,
+          0,
+          irisSize * 1.8,
+          0,
+          Math.PI * 2
+        );
+
+        ctx.fill();
+
+        ctx.beginPath();
+
+        ctx.arc(
+          0,
+          0,
+          irisSize,
           0,
           Math.PI * 2
         );
 
         ctx.fillStyle =
-          colors.bright.replace(
-            "1)",
-            `${particle.alpha * twinkle})`
-          );
-
-        ctx.shadowBlur = 10;
-        ctx.shadowColor =
-          colors.core;
+          "rgba(7, 10, 17, 1)";
 
         ctx.fill();
-      }
 
-      /* =========================================================
-         CORE OUTER GLOW
-         ========================================================= */
+        ctx.strokeStyle =
+          primary;
 
-      ctx.beginPath();
+        ctx.lineWidth =
+          1 * scale;
 
-      ctx.arc(
-        centerX,
-        centerY,
-        coreRadius * 1.08,
-        0,
-        Math.PI * 2
-      );
+        ctx.stroke();
 
-      ctx.strokeStyle =
-        colors.ring;
+        /*
+         * Pupil.
+         */
 
-      ctx.lineWidth = 2;
+        const pupilPulse =
+          1 +
+          Math.sin(
+            time * 0.003
+          ) *
+            0.08;
 
-      ctx.shadowBlur =
-        state === "no-limits"
-          ? 22
-          : 20;
+        ctx.beginPath();
 
-      ctx.shadowColor =
-        colors.core;
-
-      ctx.stroke();
-
-      /* =========================================================
-         CORE BODY
-         ========================================================= */
-
-      const coreGradient =
-        ctx.createRadialGradient(
-          centerX,
-          centerY,
-          coreRadius * 0.05,
-          centerX,
-          centerY,
-          coreRadius
-        );
-
-      coreGradient.addColorStop(
-        0,
-        "rgba(0, 0, 0, 0.98)"
-      );
-
-      coreGradient.addColorStop(
-        0.58,
-        "rgba(0, 0, 0, 0.97)"
-      );
-
-      coreGradient.addColorStop(
-        0.83,
-        colors.glow
-      );
-
-      coreGradient.addColorStop(
-        1,
-        colors.core
-      );
-
-      ctx.beginPath();
-
-      ctx.arc(
-        centerX,
-        centerY,
-        coreRadius,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fillStyle =
-        coreGradient;
-
-      ctx.fill();
-
-      /* =========================================================
-         HOLLOW CORE EDGE
-         ========================================================= */
-
-      ctx.beginPath();
-
-      ctx.arc(
-        centerX,
-        centerY,
-        coreRadius * 0.93,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.strokeStyle =
-        colors.bright;
-
-      ctx.lineWidth = 2.5;
-
-      ctx.shadowBlur = 24;
-
-      ctx.shadowColor =
-        colors.core;
-
-      ctx.stroke();
-
-      /* =========================================================
-         INNER RING
-         ========================================================= */
-
-      ctx.beginPath();
-
-      ctx.arc(
-        centerX,
-        centerY,
-        coreRadius * 0.78,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.strokeStyle =
-        colors.ring.replace(
-          "0.65",
-          "0.32"
-        );
-
-      ctx.lineWidth = 1;
-
-      ctx.shadowBlur = 10;
-
-      ctx.stroke();
-
-      /* =========================================================
-         CORE LIGHT POINT
-         ========================================================= */
-
-      const pointGlow =
-        ctx.createRadialGradient(
-          centerX,
-          centerY,
+        ctx.arc(
           0,
-          centerX,
-          centerY,
-          coreRadius * 0.32
+          0,
+          3.5 * scale * pupilPulse,
+          0,
+          Math.PI * 2
         );
 
-      pointGlow.addColorStop(
-        0,
-        "rgba(255, 255, 220, 0.22)"
+        ctx.fillStyle =
+          bright;
+
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = primary;
+        ctx.fill();
+
+        /*
+         * Digital eye reflection.
+         */
+
+        ctx.beginPath();
+
+        ctx.arc(
+          -3 * scale,
+          -3 * scale,
+          1.4 * scale,
+          0,
+          Math.PI * 2
+        );
+
+        ctx.fillStyle =
+          "rgba(255,255,255,0.8)";
+
+        ctx.shadowBlur = 0;
+        ctx.fill();
+
+        /*
+         * Tiny scan ticks.
+         */
+
+        ctx.strokeStyle =
+          primary.replace(
+            "1)",
+            "0.45)"
+          );
+
+        ctx.lineWidth =
+          0.7 * scale;
+
+        for (
+          let i = -1;
+          i <= 1;
+          i++
+        ) {
+          ctx.beginPath();
+
+          ctx.moveTo(
+            flip
+              ? eyeW * 0.34
+              : -eyeW * 0.34,
+            i * 7 * scale
+          );
+
+          ctx.lineTo(
+            flip
+              ? eyeW * 0.43
+              : -eyeW * 0.43,
+            i * 7 * scale
+          );
+
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      };
+
+      drawEye(
+        cx - eyeDistance,
+        false
       );
 
-      pointGlow.addColorStop(
-        0.5,
-        colors.glow
+      drawEye(
+        cx + eyeDistance,
+        true
       );
 
-      pointGlow.addColorStop(
-        1,
-        "rgba(0, 0, 0, 0)"
+      /*
+       * ---------------------------------------------------------
+       * NOSE
+       * ---------------------------------------------------------
+       */
+
+      glowLine(
+        [
+          [
+            cx,
+            cy + 27 * scale + float,
+          ],
+          [
+            cx - 3 * scale,
+            cy + 51 * scale + float,
+          ],
+          [
+            cx + 5 * scale,
+            cy + 57 * scale + float,
+          ],
+        ],
+        primary.replace("1)", "0.45)"),
+        primary.replace("1)", "0.18)"),
+        1 * scale
       );
 
-      ctx.fillStyle =
-        pointGlow;
+      /*
+       * ---------------------------------------------------------
+       * MOUTH
+       * ---------------------------------------------------------
+       */
 
-      ctx.beginPath();
+      const mouthY =
+        cy + 76 * scale + float;
 
-      ctx.arc(
-        centerX,
-        centerY,
-        coreRadius * 0.32,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-
-      /* =========================================================
-         CROSS ENERGY LINES
-         ========================================================= */
-
-      const lineLength =
-        coreRadius * 2.25;
-
-      const lineAlpha =
-        state === "no-limits"
-          ? 0.42
-          : 0.3;
+      const speakingWave =
+        mode === "speaking"
+          ? Math.abs(
+              Math.sin(
+                time * 0.014
+              )
+            ) *
+            7 *
+            scale
+          : 0;
 
       ctx.save();
 
-      ctx.strokeStyle =
-        colors.core.replace(
-          "1)",
-          `${lineAlpha})`
-        );
-
-      ctx.lineWidth = 0.7;
-
-      ctx.shadowBlur = 8;
-
-      ctx.shadowColor =
-        colors.core;
-
       ctx.beginPath();
 
       ctx.moveTo(
-        centerX -
-          lineLength,
-        centerY
+        cx - 25 * scale,
+        mouthY
       );
 
-      ctx.lineTo(
-        centerX +
-          lineLength,
-        centerY
+      ctx.quadraticCurveTo(
+        cx,
+        mouthY +
+          11 * scale +
+          speakingWave,
+        cx + 25 * scale,
+        mouthY
       );
 
+      ctx.strokeStyle =
+        bright;
+
+      ctx.lineWidth =
+        1.7 * scale;
+
+      ctx.lineCap = "round";
+
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = primary;
       ctx.stroke();
 
+      ctx.restore();
+
+      /*
+       * ---------------------------------------------------------
+       * CHEEK DIGITAL MARKERS
+       * ---------------------------------------------------------
+       */
+
+      const drawCheek = (
+        x: number,
+        y: number,
+        direction: number
+      ) => {
+        for (let i = 0; i < 3; i++) {
+          ctx.fillStyle =
+            primary.replace(
+              "1)",
+              String(
+                0.28 -
+                  i * 0.06
+              ) + ")"
+            );
+
+          ctx.fillRect(
+            x +
+              direction *
+                i *
+                5 *
+                scale,
+            y +
+              i *
+                4 *
+                scale,
+            2.5 * scale,
+            2.5 * scale
+          );
+        }
+      };
+
+      drawCheek(
+        cx - 66 * scale,
+        cy + 52 * scale + float,
+        -1
+      );
+
+      drawCheek(
+        cx + 66 * scale,
+        cy + 52 * scale + float,
+        1
+      );
+
+      /*
+       * ---------------------------------------------------------
+       * FACE SCAN LINE
+       * ---------------------------------------------------------
+       */
+
+      const scanTravel =
+        ((time * 0.08) %
+          (faceH + 30 * scale)) -
+        15 * scale;
+
+      ctx.save();
+
+      ctx.beginPath();
+
+      ctx.rect(
+        faceX,
+        faceY,
+        faceW,
+        faceH
+      );
+
+      ctx.clip();
+
+      ctx.strokeStyle =
+        primary.replace(
+          "1)",
+          "0.13)"
+        );
+
+      ctx.lineWidth =
+        1 * scale;
+
       ctx.beginPath();
 
       ctx.moveTo(
-        centerX,
-        centerY -
-          lineLength
+        faceX,
+        faceY + scanTravel
       );
 
       ctx.lineTo(
-        centerX,
-        centerY +
-          lineLength
+        faceX + faceW,
+        faceY + scanTravel
       );
 
       ctx.stroke();
 
       ctx.restore();
 
-      /* =========================================================
-         LISTENING WAVES
-         ========================================================= */
+      /*
+       * ---------------------------------------------------------
+       * SMALL DIGITAL CORNER MARKERS
+       * ---------------------------------------------------------
+       */
 
-      if (state === "listening") {
-        for (let i = 0; i < 4; i++) {
-          const wave =
-            ((time * 0.18 +
-              i * 55) %
-              220);
+      const marker =
+        16 * scale;
 
-          const radius =
-            coreRadius +
-            wave;
+      const offset =
+        9 * scale;
 
-          const alpha =
-            Math.max(
-              0,
-              0.42 -
-                wave /
-                  520
-            );
-
-          ctx.beginPath();
-
-          ctx.arc(
-            centerX,
-            centerY,
-            radius,
-            0,
-            Math.PI * 2
-          );
-
-          ctx.strokeStyle =
-            colors.core.replace(
-              "1)",
-              `${alpha})`
-            );
-
-          ctx.lineWidth = 1.2;
-
-          ctx.stroke();
-        }
-      }
-
-      /* =========================================================
-         THINKING ENERGY
-         ========================================================= */
-
-      if (state === "thinking") {
-        for (let i = 0; i < 6; i++) {
-          const rotation =
-            time *
-              0.001 +
-            i;
-
-          const radius =
-            coreRadius *
-            (1.35 +
-              i * 0.12);
-
-          const x =
-            centerX +
-            Math.cos(
-              rotation
-            ) *
-              radius;
-
-          const y =
-            centerY +
-            Math.sin(
-              rotation
-            ) *
-              radius;
-
-          ctx.beginPath();
-
-          ctx.arc(
-            x,
-            y,
-            2.2,
-            0,
-            Math.PI * 2
-          );
-
-          ctx.fillStyle =
-            colors.bright;
-
-          ctx.shadowBlur = 18;
-
-          ctx.shadowColor =
-            colors.core;
-
-          ctx.fill();
-        }
-      }
-
-      /* =========================================================
-         SPEAKING PULSE
-         ========================================================= */
-
-      if (state === "speaking") {
-        const pulseRadius =
-          coreRadius *
-          (1.2 +
-            Math.sin(
-              time * 0.012
-            ) *
-              0.15);
-
-        ctx.beginPath();
-
-        ctx.arc(
-          centerX,
-          centerY,
-          pulseRadius,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.strokeStyle =
-          colors.core.replace(
+      const drawMarker = (
+        x: number,
+        y: number,
+        sx: number,
+        sy: number
+      ) => {
+        glowLine(
+          [
+            [x, y],
+            [x + sx * marker, y],
+            [x + sx * marker, y + sy * marker],
+          ],
+          primary.replace(
             "1)",
-            "0.35)"
-          );
+            "0.42)"
+          ),
+          primary.replace(
+            "1)",
+            "0.18)"
+          ),
+          0.8 * scale
+        );
+      };
 
-        ctx.lineWidth = 2;
+      drawMarker(
+        faceX - offset,
+        faceY + marker,
+        1,
+        -1
+      );
 
-        ctx.shadowBlur = 18;
+      drawMarker(
+        faceX + faceW + offset,
+        faceY + marker,
+        -1,
+        -1
+      );
 
-        ctx.shadowColor =
-          colors.core;
+      drawMarker(
+        faceX - offset,
+        faceY + faceH - marker,
+        1,
+        1
+      );
 
-        ctx.stroke();
-      }
+      drawMarker(
+        faceX + faceW + offset,
+        faceY + faceH - marker,
+        -1,
+        1
+      );
 
-      /* =========================================================
-         NO LIMITS RIPPLE
-         ========================================================= */
+      /*
+       * ---------------------------------------------------------
+       * STATUS LABEL
+       * ---------------------------------------------------------
+       */
 
-      if (state === "no-limits") {
-        for (let i = 0; i < 3; i++) {
-          const ripple =
-            ((time * 0.25 +
-              i * 90) %
-              300);
+      const status =
+        mode === "no-limits"
+          ? "NO LIMITS"
+          : mode === "listening"
+          ? "LISTENING"
+          : mode === "thinking"
+          ? "THINKING"
+          : mode === "speaking"
+          ? "SPEAKING"
+          : "ONLINE";
 
-          const radius =
-            coreRadius +
-            ripple;
-
-          const alpha =
-            Math.max(
-              0,
-              0.55 -
-                ripple /
-                  550
-            );
-
-          ctx.beginPath();
-
-          ctx.arc(
-            centerX,
-            centerY,
-            radius,
-            0,
-            Math.PI * 2
-          );
-
-          ctx.strokeStyle =
-            `rgba(255, 40, 40, ${alpha})`;
-
-          ctx.lineWidth = 1.5;
-
-          ctx.shadowBlur = 15;
-
-          ctx.shadowColor =
-            "rgba(255, 40, 40, 0.8)";
-
-          ctx.stroke();
-        }
-      }
-
-      /* =========================================================
-         EON TEXT
-         ========================================================= */
-
-      const textY =
-        centerY +
-        coreRadius *
-          1.55;
+      const statusY =
+        faceY + faceH + 45 * scale;
 
       ctx.save();
 
@@ -848,64 +1145,99 @@ export default function EnergyCore({
       ctx.textBaseline = "middle";
 
       ctx.font =
-        "700 26px Arial, sans-serif";
-
-      ctx.letterSpacing = "8px";
-
-      ctx.fillStyle =
-        colors.bright;
-
-      ctx.shadowBlur = 18;
-
-      ctx.shadowColor =
-        colors.core;
-
-      ctx.fillText(
-        "EON",
-        centerX,
-        textY
-      );
-
-      ctx.font =
-        "600 9px Arial, sans-serif";
-
-      ctx.shadowBlur = 10;
+        "600 " +
+        Math.max(
+          8,
+          9 * scale
+        ) +
+        "px Arial, sans-serif";
 
       ctx.fillStyle =
-        colors.core.replace(
+        primary.replace(
           "1)",
           "0.78)"
         );
 
-      const stateText =
-        state === "listening"
-          ? "LISTENING..."
-          : state === "thinking"
-          ? "THINKING..."
-          : state === "speaking"
-          ? "SPEAKING..."
-          : state === "no-limits"
-          ? "NO LIMITS"
-          : "ONLINE";
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = primary;
 
       ctx.fillText(
-        stateText,
-        centerX,
-        textY + 26
+        status,
+        cx,
+        statusY
       );
 
       ctx.restore();
 
+      /*
+       * ---------------------------------------------------------
+       * ACTIVITY INDICATOR
+       * ---------------------------------------------------------
+       */
+
+      if (
+        mode === "thinking" ||
+        mode === "listening" ||
+        mode === "speaking"
+      ) {
+        const bars =
+          mode === "thinking"
+            ? 5
+            : 4;
+
+        const barWidth =
+          3 * scale;
+
+        const gap =
+          5 * scale;
+
+        const totalWidth =
+          bars * barWidth +
+          (bars - 1) * gap;
+
+        const startX =
+          cx -
+          totalWidth / 2;
+
+        for (let i = 0; i < bars; i++) {
+          const level =
+            5 +
+            Math.abs(
+              Math.sin(
+                time * 0.008 +
+                  i * 0.9
+              )
+            ) *
+              12;
+
+          roundRect(
+            startX +
+              i *
+                (barWidth + gap),
+            statusY +
+              13 * scale -
+              level / 2,
+            barWidth,
+            level,
+            2 * scale
+          );
+
+          ctx.fillStyle =
+            primary.replace(
+              "1)",
+              "0.72)"
+            );
+
+          ctx.fill();
+        }
+      }
+
       animationFrame =
-        requestAnimationFrame(
-          draw
-        );
+        requestAnimationFrame(draw);
     };
 
     animationFrame =
-      requestAnimationFrame(
-        draw
-      );
+      requestAnimationFrame(draw);
 
     return () => {
       window.removeEventListener(
@@ -935,7 +1267,7 @@ export default function EnergyCore({
     >
       <canvas
         ref={canvasRef}
-        aria-label="EON Energy Core"
+        aria-label="EON digital AI face"
         style={{
           display: "block",
           width: "100%",
