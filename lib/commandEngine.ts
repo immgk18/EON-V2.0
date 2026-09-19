@@ -18,7 +18,7 @@
  */
 
 export type CommandIntent =
-  | "MODE_ALERT"
+  | "MODE_NO_LIMITS"
   | "MODE_NORMAL"
   | "SYSTEM_STATUS"
   | "CURRENT_MODE"
@@ -64,17 +64,16 @@ export function processCommand(
 
   if (
     normalized.includes("eon has no limits") ||
-    normalized.includes("activate high alert") ||
-    normalized.includes("activate alert mode") ||
-    normalized.includes("enter high alert") ||
-    normalized.includes("enable high alert") ||
-    normalized.includes("go into high alert")
+    normalized.includes("activate no limits") ||
+    normalized.includes("enter no limits") ||
+    normalized.includes("enable no limits") ||
+    normalized.includes("activate operator mode")
   ) {
     return {
-      intent: "MODE_ALERT",
+      intent: "MODE_NO_LIMITS",
       original,
       normalized,
-      message: "High alert mode activation requested.",
+      message: "No Limits mode activation requested.",
     };
   }
 
@@ -90,8 +89,9 @@ export function processCommand(
     normalized.includes("activate normal") ||
     normalized.includes("restore normal mode") ||
     normalized.includes("return to normal mode") ||
-    normalized.includes("disable high alert") ||
-    normalized.includes("exit high alert")
+    normalized.includes("disable no limits") ||
+    normalized.includes("exit no limits") ||
+    normalized.includes("eon has limits")
   ) {
     return {
       intent: "MODE_NORMAL",
@@ -228,7 +228,7 @@ export function getHelpMessage(): string {
     "Available EON commands.",
     "System status.",
     "Current mode.",
-    "Activate high alert.",
+    "Activate No Limits mode.",
     "Activate normal mode.",
     "EON has no limits.",
     "EON has limits.",
