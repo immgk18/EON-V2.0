@@ -2622,3 +2622,36 @@ input:focus-visible {
     bottom: 60px;
   }
 }
+
+
+/* =========================================================
+   EON DESKTOP — FULL-SCREEN RAIL + LOWER COMMAND BAR
+   ========================================================= */
+
+/* The system rail belongs to the full workspace height.
+   Its scrollbar stays inside the rail instead of ending
+   at the core content boundary. */
+.eonDesktop .desktopWorkspace {
+  min-height: 0;
+}
+
+.eonDesktop .systemRail {
+  height: 100%;
+  min-height: 0;
+  align-self: stretch;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+/* Give the command/chat bar a little more breathing room
+   from the EON core while keeping it inside the workspace. */
+.eonDesktop .corePrompt {
+  bottom: 17px;
+}
+
+@media (max-width: 700px) {
+  .eonDesktop .corePrompt {
+    bottom: 5px;
+  }
+}
