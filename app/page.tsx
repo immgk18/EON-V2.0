@@ -21,6 +21,7 @@ import {
 } from "@/lib/commandEngine";
 
 import askThroughGateway from "@/lib/modelGateway";
+import { analyzeEONImage } from "@/lib/eonApi";
 
 import {
   getInstantResponse,
@@ -153,6 +154,9 @@ export default function Home() {
 
   const [speedInfo, setSpeedInfo] =
     useState<SpeedInfo | null>(null);
+
+  const [visionBusy, setVisionBusy] =
+    useState(false);
 
 
   /* =========================================================
@@ -1511,6 +1515,70 @@ export default function Home() {
     ]);
   };
 
+  const handleVisionUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setResponse("VISION REQUIRES AN IMAGE FILE.");
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      setResponse("IMAGE IS TOO LARGE. MAXIMUM SIZE IS 8 MB.");
+      return;
+    }
+
+    setVisionBusy(true);
+    setIsProcessing(true);
+    setCoreState("thinking");
+    setActivePanel("VISION");
+    setResponse("EON VISION IS ANALYZING THE IMAGE...");
+
+    try {
+      const imageBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const value = String(reader.result || "");
+          resolve(value.split(",")[1] || value);
+        };
+        reader.onerror = () => reject(new Error("Image could not be read."));
+        reader.readAsDataURL(file);
+      });
+
+      const result = await analyzeEONImage(
+        imageBase64,
+        file.type,
+        "Analyze this image for the user's request. Describe only visible information and clearly separate observations from uncertainty."
+      );
+
+      setResponse(result.response);
+      rememberInteraction("Analyze uploaded image", result.response);
+      setTerminalLines((lines) => [
+        ...lines.slice(-5),
+        "VISION • IMAGE ANALYSIS COMPLETE",
+        `VISION MODEL • ${result.model}`,
+      ]);
+      speak(result.response, mode);
+      setCoreState("speaking");
+      window.setTimeout(() => setCoreState("idle"), 7000);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "EON Vision could not analyze the image.";
+      setResponse(message.toUpperCase());
+      setCoreState("idle");
+    } finally {
+      setVisionBusy(false);
+      setIsProcessing(false);
+    }
+  };
+
   const runTerminalCommand = (input: string) => {
     const value = input.trim();
     if (!value) return;
@@ -1843,9 +1911,21 @@ export default function Home() {
             )}
 
             {activePanel === "VISION" && (
-              <div className="panelNote">
-                Vision module foundation ready. Image analysis can be connected
-                here without changing the EON core.
+              <div className="panelStack">
+                <div className="panelNote">
+                  EON Vision is connected to the backend image-analysis engine.
+                  Upload an image to run visual analysis.
+                </div>
+                <label className="panelAction" style={{ display: "block", textAlign: "center", cursor: visionBusy ? "wait" : "pointer" }}>
+                  {visionBusy ? "ANALYZING IMAGE..." : "UPLOAD IMAGE"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    onChange={handleVisionUpload}
+                    disabled={visionBusy}
+                    style={{ display: "none" }}
+                  />
+                </label>
               </div>
             )}
 
@@ -1869,9 +1949,26 @@ export default function Home() {
             )}
 
             {activePanel === "TOOLS" && (
-              <div className="panelNote">
-                Authorized tool integrations and hardware interfaces will appear
-                here.
+              <div className="panelStack">
+                <div className="panelNote">
+                  Deterministic tools are connected for arithmetic, unit
+                  conversion and UTC time. Use the command bar to invoke them.
+                </div>
+                <button
+                  type="button"
+                  className="panelAction"
+                  onClick={() => {
+                    setActivePanel("CHAT");
+                    setCommand("calculate 25 * 4");
+                    window.setTimeout(() => {
+                      document.querySelector<HTMLInputElement>(
+                        'input[aria-label="Ask EON"]'
+                      )?.focus();
+                    }, 0);
+                  }}
+                >
+                  TEST CALCULATOR
+                </button>
               </div>
             )}
           </div>
