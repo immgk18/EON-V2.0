@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import EnergyCore from "@/components/EnergyCore";
+import DesignWorkspace from "@/components/DesignWorkspace";
 
 import {
   createVoiceRecognition,
@@ -1945,26 +1946,7 @@ export default function Home() {
               </div>
             )}
 
-            {activePanel === "DESIGN" && (
-              <div className="designWorkspace">
-                <div className="designStatusCard">
-                  <span>NO LIMITS DESIGN</span>
-                  <b>DESIGN WORKSPACE READY</b>
-                </div>
-                <div className="panelNote">
-                  EON can route CAD, EDA, 3D and BIM requests here. Actual
-                  platform execution requires a connected design adapter.
-                </div>
-                <div className="designTargetGrid">
-                  <div><b>PCB / EDA</b><small>PCB schematic + layout workflow</small></div>
-                  <div><b>3D / BIM</b><small>Architecture + 3D model workflow</small></div>
-                </div>
-                <div className="panelNote">
-                  Try: <strong>create a PCB design for a blinking LED</strong>
-                  or <strong>design a skyscraper</strong>.
-                </div>
-              </div>
-            )}
+            {activePanel === "DESIGN" && <DesignWorkspace />}
 
             {activePanel === "COMMANDS" && (
               <div className="panelStack">
