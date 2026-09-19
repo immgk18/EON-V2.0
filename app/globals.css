@@ -1519,3 +1519,684 @@ input:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* =========================================================
+   EON DESKTOP WORKSPACE — 2.0 UI
+   ========================================================= */
+
+.eonDesktop {
+  --desktop-accent: #ffd84d;
+  --desktop-accent-soft: rgba(255, 216, 77, 0.16);
+  --desktop-border: rgba(255, 216, 77, 0.16);
+  --desktop-panel: rgba(4, 5, 8, 0.76);
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  min-width: 320px;
+  min-height: 600px;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--eon-text);
+  background:
+    radial-gradient(circle at 50% 43%, rgba(255, 215, 70, 0.055), transparent 34%),
+    radial-gradient(circle at 50% 110%, rgba(255, 190, 40, 0.025), transparent 45%),
+    #020204;
+}
+
+.eonDesktop.no-limits {
+  --desktop-accent: #ff554b;
+  --desktop-accent-soft: rgba(255, 65, 55, 0.16);
+  --desktop-border: rgba(255, 75, 65, 0.2);
+  background:
+    radial-gradient(circle at 50% 43%, rgba(255, 45, 35, 0.065), transparent 36%),
+    #020203;
+}
+
+.eonDesktop .stars {
+  z-index: -5;
+}
+
+.desktopGlow {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: min(70vw, 980px);
+  height: min(70vw, 980px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -2;
+  background: radial-gradient(circle, var(--desktop-accent-soft), transparent 68%);
+  filter: blur(18px);
+  animation: desktopGlowPulse 5s ease-in-out infinite;
+}
+
+@keyframes desktopGlowPulse {
+  0%, 100% { opacity: .65; transform: translate(-50%, -50%) scale(.96); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+.desktopTopBar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 54px;
+  display: grid;
+  grid-template-columns: 270px 1fr 160px;
+  align-items: center;
+  border-bottom: 1px solid var(--desktop-border);
+  background: rgba(2, 3, 5, 0.78);
+  backdrop-filter: blur(18px);
+  z-index: 100;
+}
+
+.desktopBrand {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 18px;
+  border-right: 1px solid var(--desktop-border);
+}
+
+.brandMark {
+  color: var(--desktop-accent);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-shadow: 0 0 15px var(--desktop-accent-soft);
+}
+
+.brandName {
+  color: rgba(245, 232, 168, .5);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .13em;
+}
+
+.desktopMenu {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 10px;
+}
+
+.menuItem {
+  height: 100%;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: rgba(245, 232, 168, .62);
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: .05em;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  color: var(--desktop-accent);
+  background: var(--desktop-accent-soft);
+}
+
+.desktopStatus {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 18px;
+  color: rgba(245, 232, 168, .55);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+
+.desktopWorkspace {
+  position: absolute;
+  inset: 54px 0 154px;
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr) 245px;
+  z-index: 10;
+}
+
+.systemRail {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 8px;
+  border-right: 1px solid var(--desktop-border);
+  background: rgba(2, 3, 5, .42);
+  backdrop-filter: blur(14px);
+}
+
+.railTitle {
+  padding: 4px 3px 10px;
+  color: rgba(245, 232, 168, .28);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  text-align: center;
+}
+
+.railButton {
+  min-height: 55px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(245, 232, 168, .42);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.railButton span {
+  font-size: 15px;
+  color: var(--desktop-accent);
+  opacity: .72;
+}
+
+.railButton small {
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+
+.railButton:hover,
+.railButton.active {
+  border-color: var(--desktop-border);
+  background: var(--desktop-accent-soft);
+  color: var(--desktop-accent);
+  box-shadow: inset 0 0 20px var(--desktop-accent-soft);
+}
+
+.coreViewport {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.coreHeader {
+  width: min(760px, 82%);
+  height: 35px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(245, 232, 168, .38);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .2em;
+}
+
+.coreHeaderLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--desktop-border), transparent);
+}
+
+.coreCanvas {
+  position: relative;
+  width: min(760px, 82%);
+  flex: 1;
+  min-height: 260px;
+}
+
+.coreCanvas > div:first-child {
+  width: 100%;
+  height: 100%;
+}
+
+.corePrompt {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  width: min(680px, 78%);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  z-index: 30;
+}
+
+.promptGlyph {
+  color: var(--desktop-accent);
+  font-family: monospace;
+  font-size: 11px;
+  opacity: .7;
+}
+
+.desktopCommand {
+  flex: 1;
+  min-width: 0;
+  height: 47px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 5px 4px 14px;
+  border: 1px solid var(--desktop-border);
+  border-radius: 8px;
+  background: rgba(3, 4, 7, .76);
+  box-shadow: 0 0 35px var(--desktop-accent-soft);
+  backdrop-filter: blur(18px);
+}
+
+.desktopCommand:focus-within {
+  border-color: var(--desktop-accent);
+}
+
+.desktopCommand input {
+  flex: 1;
+  min-width: 0;
+  height: 35px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--desktop-accent);
+  font-size: 11px;
+  letter-spacing: .05em;
+}
+
+.desktopCommand input::placeholder {
+  color: rgba(245, 232, 168, .28);
+}
+
+.voiceButton,
+.coreSend {
+  width: 35px;
+  height: 35px;
+  flex: 0 0 auto;
+  border: 1px solid var(--desktop-border);
+  border-radius: 6px;
+  background: rgba(255, 216, 77, .035);
+  color: var(--desktop-accent);
+  cursor: pointer;
+}
+
+.voiceButton:hover,
+.coreSend:hover:not(:disabled) {
+  background: var(--desktop-accent-soft);
+  box-shadow: 0 0 15px var(--desktop-accent-soft);
+}
+
+.coreSend:disabled {
+  opacity: .3;
+  cursor: not-allowed;
+}
+
+.desktopResponse {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  width: min(680px, 76%);
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-top: 1px solid var(--desktop-border);
+  border-bottom: 1px solid var(--desktop-border);
+  color: var(--desktop-accent);
+  background: rgba(0, 0, 0, .2);
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px var(--desktop-accent-soft);
+}
+
+.contextPanel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-left: 1px solid var(--desktop-border);
+  background: var(--desktop-panel);
+  backdrop-filter: blur(18px);
+}
+
+.panelHeading {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--desktop-border);
+  color: var(--desktop-accent);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .17em;
+}
+
+.panelIndicator {
+  font-size: 7px;
+  animation: onlinePulse 2s ease-in-out infinite;
+}
+
+.panelBody {
+  flex: 1;
+  padding: 14px;
+  overflow: auto;
+}
+
+.metricRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(255, 216, 77, .07);
+  color: rgba(245, 232, 168, .4);
+  font-size: 8px;
+  letter-spacing: .12em;
+}
+
+.metricRow b {
+  color: var(--desktop-accent);
+  font-size: 7px;
+}
+
+.panelNote {
+  color: rgba(245, 232, 168, .45);
+  font-size: 9px;
+  line-height: 1.8;
+  letter-spacing: .04em;
+}
+
+.panelFooter {
+  padding: 12px 14px;
+  border-top: 1px solid var(--desktop-border);
+  color: rgba(245, 232, 168, .3);
+  font-size: 7px;
+  line-height: 1.8;
+  letter-spacing: .11em;
+}
+
+.terminalPanel {
+  position: absolute;
+  left: 86px;
+  right: 245px;
+  bottom: 39px;
+  height: 115px;
+  border-top: 1px solid var(--desktop-border);
+  background: rgba(1, 2, 4, .86);
+  backdrop-filter: blur(16px);
+  z-index: 50;
+}
+
+.terminalHeader {
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 13px;
+  border-bottom: 1px solid rgba(255, 216, 77, .07);
+  color: rgba(245, 232, 168, .35);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .17em;
+}
+
+.terminalOutput {
+  height: 58px;
+  overflow: hidden;
+  padding: 6px 13px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  line-height: 1.65;
+}
+
+.terminalLine {
+  color: rgba(245, 232, 168, .42);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.terminalLine:nth-last-child(-n+2) {
+  color: var(--desktop-accent);
+}
+
+.terminalInput {
+  height: 29px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border-top: 1px solid rgba(255, 216, 77, .07);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  color: var(--desktop-accent);
+}
+
+.terminalInput input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--desktop-accent);
+  font: inherit;
+}
+
+.terminalInput input::placeholder {
+  color: rgba(245, 232, 168, .2);
+}
+
+.desktopFooter {
+  position: absolute;
+  left: 86px;
+  right: 245px;
+  bottom: 0;
+  height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 0 13px;
+  border-top: 1px solid rgba(255, 216, 77, .07);
+  background: rgba(2, 3, 5, .9);
+  z-index: 60;
+}
+
+.desktopFooter > span {
+  color: rgba(245, 232, 168, .22);
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.desktopFooter button {
+  padding: 6px 9px;
+  border: 1px solid var(--desktop-border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--desktop-accent);
+  cursor: pointer;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+
+.desktopFooter button:hover {
+  background: var(--desktop-accent-soft);
+}
+
+.eonDesktop.no-limits .modeBurst {
+  --eon-gold: #ff4035;
+}
+
+@media (max-width: 900px) {
+  .desktopTopBar {
+    grid-template-columns: 170px 1fr 95px;
+  }
+
+  .brandName {
+    display: none;
+  }
+
+  .desktopMenu {
+    overflow-x: auto;
+  }
+
+  .menuItem {
+    padding: 0 9px;
+    font-size: 9px;
+  }
+
+  .desktopWorkspace {
+    grid-template-columns: 66px minmax(0, 1fr) 190px;
+  }
+
+  .systemRail {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  .railButton {
+    min-height: 48px;
+  }
+
+  .railButton small {
+    font-size: 5px;
+  }
+
+  .terminalPanel,
+  .desktopFooter {
+    left: 66px;
+    right: 190px;
+  }
+}
+
+@media (max-width: 700px) {
+  .eonDesktop {
+    min-height: 560px;
+  }
+
+  .desktopTopBar {
+    grid-template-columns: 70px 1fr 78px;
+    height: 48px;
+  }
+
+  .desktopBrand {
+    padding: 0 10px;
+  }
+
+  .brandMark {
+    font-size: 15px;
+  }
+
+  .desktopMenu {
+    gap: 0;
+  }
+
+  .menuItem {
+    padding: 0 7px;
+    font-size: 8px;
+  }
+
+  .desktopStatus {
+    padding: 0 8px;
+    font-size: 6px;
+  }
+
+  .desktopWorkspace {
+    inset: 48px 0 48px;
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .systemRail {
+    gap: 2px;
+  }
+
+  .railButton {
+    min-height: 46px;
+  }
+
+  .contextPanel {
+    display: none;
+  }
+
+  .coreHeader,
+  .coreCanvas {
+    width: 94%;
+  }
+
+  .corePrompt {
+    width: 92%;
+    bottom: 10px;
+  }
+
+  .desktopResponse {
+    width: 90%;
+    bottom: 69px;
+    font-size: 7px;
+  }
+
+  .terminalPanel {
+    left: 56px;
+    right: 0;
+    bottom: 48px;
+    height: 118px;
+  }
+
+  .desktopFooter {
+    left: 56px;
+    right: 0;
+    height: 48px;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .desktopFooter > span {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .desktopMenu .menuItem:nth-child(2),
+  .desktopMenu .menuItem:nth-child(6) {
+    display: none;
+  }
+
+  .systemRail {
+    overflow-y: auto;
+  }
+
+  .railButton {
+    min-height: 42px;
+  }
+
+  .coreHeader {
+    font-size: 6px;
+  }
+
+  .corePrompt {
+    width: 95%;
+  }
+
+  .promptGlyph {
+    display: none;
+  }
+
+  .desktopCommand {
+    height: 43px;
+  }
+
+  .desktopCommand input {
+    font-size: 9px;
+  }
+
+  .voiceButton,
+  .coreSend {
+    width: 31px;
+    height: 31px;
+  }
+
+  .terminalOutput {
+    font-size: 7px;
+  }
+}
