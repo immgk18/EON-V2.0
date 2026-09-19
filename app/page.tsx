@@ -158,6 +158,44 @@ export default function Home() {
   const [visionBusy, setVisionBusy] =
     useState(false);
 
+  const [playfulCommand, setPlayfulCommand] =
+    useState("");
+
+  const triggerPlayfulReaction = (
+    text: string
+  ) => {
+    const value = text.toLowerCase().trim();
+
+    const action =
+      /(dance|dancing|party)/.test(value)
+        ? "dance"
+        : /(wave|hello|hi eon|say hi)/.test(value)
+          ? "wave"
+          : /(butterfly|admire|beautiful)/.test(value)
+            ? "butterfly"
+            : /(yawn|sleepy|tired)/.test(value)
+              ? "yawn"
+              : /(laugh|funny|joke|hehe)/.test(value)
+                ? "laugh"
+                : /(surprise|surprised|whoa|wow)/.test(value)
+                  ? "surprised"
+                  : /(spin|dizzy|head spin)/.test(value)
+                    ? "spin"
+                    : /(hands|hand dance|fidget)/.test(value)
+                      ? "hands"
+                      : /(look at me|admire this)/.test(value)
+                        ? "admire"
+                        : "";
+
+    if (!action) return;
+
+    setPlayfulCommand(action);
+
+    window.setTimeout(() => {
+      setPlayfulCommand("");
+    }, action === "butterfly" || action === "admire" ? 7000 : 4500);
+  };
+
 
   /* =========================================================
      MEMORY HELPER
@@ -1213,6 +1251,7 @@ export default function Home() {
         return;
       }
 
+      triggerPlayfulReaction(command);
 
       await runCommand(
         command
@@ -1687,7 +1726,10 @@ export default function Home() {
           </div>
 
           <div className="coreCanvas">
-            <EnergyCore state={coreState} />
+            <EnergyCore
+              state={coreState}
+              playfulCommand={playfulCommand}
+            />
             {modeBurst && (
               <div
                 className={`modeBurst ${
