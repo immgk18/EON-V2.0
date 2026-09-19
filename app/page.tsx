@@ -1716,6 +1716,26 @@ export default function Home() {
                     ))
                   )}
                 </div>
+
+                <div className="historyConversation">
+                  {(chatSessions.find((chat) => chat.id === currentChatId)?.messages ?? []).map((message) => (
+                    <div
+                      key={message.id}
+                      className={`chatMessage ${
+                        message.role === "user"
+                          ? "userMessage"
+                          : "assistantMessage"
+                      }`}
+                    >
+                      <span className="chatMessageRole">
+                        {message.role === "user" ? "YOU" : "EON"}
+                      </span>
+                      <div className="chatMessageContent">
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
