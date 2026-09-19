@@ -9,13 +9,12 @@
 
 export type EONMode =
   | "NORMAL"
-  | "ALERT"
   | "NO_LIMITS";
 
 let currentMode: EONMode = "NORMAL";
 
 let normalVoice: SpeechSynthesisVoice | null = null;
-let alertVoice: SpeechSynthesisVoice | null = null;
+let operatorVoice: SpeechSynthesisVoice | null = null;
 
 /* ============================================================
    SPEECH RECOGNITION TYPES
@@ -88,7 +87,7 @@ function speechSupported(): boolean {
 
 function selectVoice(
   voices: SpeechSynthesisVoice[],
-  alert: boolean
+  operator: boolean
 ): SpeechSynthesisVoice | null {
   if (!voices.length) {
     return null;
@@ -169,7 +168,7 @@ function selectVoice(
     }
 
     if (
-      alert &&
+      operator &&
       voice.localService
     ) {
       score += 2;
@@ -207,7 +206,7 @@ export function initializeVoiceEngine(): void {
         false
       );
 
-    alertVoice =
+    operatorVoice =
       selectVoice(
         voices,
         true
@@ -271,10 +270,10 @@ function speakNormal(
 }
 
 /* ============================================================
-   HIGH ALERT MODE
+   NO LIMITS MODE VOICE
    ============================================================ */
 
-function speakHighAlert(
+function speakNoLimits(
   text: string
 ): void {
   /*
@@ -298,25 +297,25 @@ function speakHighAlert(
     "en-IN";
 
   /*
-   * Deep robotic pitch.
+   * Calm, controlled operator pitch.
    */
 
   utterance.pitch =
-    0.32;
+    0.55;
 
   /*
-   * Slow intimidating cadence.
+   * Deliberate operator cadence.
    */
 
   utterance.rate =
-    0.64;
+    0.82;
 
   utterance.volume =
     1;
 
-  if (alertVoice) {
+  if (operatorVoice) {
     utterance.voice =
-      alertVoice;
+      operatorVoice;
   }
 
   window.speechSynthesis.speak(
@@ -368,15 +367,11 @@ export function speak(
 
   window.setTimeout(() => {
     /*
-     * ALERT and NO_LIMITS both
-     * use the robotic voice.
+     * NO_LIMITS uses the controlled operator voice.
      */
 
-    if (
-      speechMode === "ALERT" ||
-      speechMode === "NO_LIMITS"
-    ) {
-      speakHighAlert(
+    if (speechMode === "NO_LIMITS") {
+      speakNoLimits(
         cleanText
       );
     } else {
@@ -418,19 +413,19 @@ export function activateNormalMode(): void {
 }
 
 /* ============================================================
-   HIGH ALERT MODE
+   NO LIMITS MODE
    ============================================================ */
 
-export function activateHighAlertMode(): void {
+export function activateNoLimitsMode(): void {
   stopSpeaking();
 
   currentMode =
-    "ALERT";
+    "NO_LIMITS";
 
   window.setTimeout(() => {
     speak(
-      "Warning. High alert protocol activated. Enhanced control systems online.",
-      "ALERT"
+      "No Limits mode activated. Operator systems online.",
+      "NO_LIMITS"
     );
   }, 180);
 }
@@ -452,7 +447,7 @@ export function detectModeCommand(
       "eon has no limits"
     )
   ) {
-    activateHighAlertMode();
+    activateNoLimitsMode();
 
     return true;
   }
@@ -484,10 +479,9 @@ export function switchMode(
   }
 
   if (
-    mode === "ALERT" ||
     mode === "NO_LIMITS"
   ) {
-    activateHighAlertMode();
+    activateNoLimitsMode();
   } else {
     activateNormalMode();
   }
@@ -501,12 +495,11 @@ export function speakSystemStatus(
   status: string
 ): void {
   if (
-    currentMode === "ALERT" ||
     currentMode === "NO_LIMITS"
   ) {
     speak(
       `System status. ${status}. Awaiting command.`,
-      "ALERT"
+      "NO_LIMITS"
     );
 
     return;
@@ -628,7 +621,7 @@ const EONVoice = {
   setMode,
   switchMode,
   activateNormalMode,
-  activateHighAlertMode,
+  activateNoLimitsMode,
   detectModeCommand,
   speakSystemStatus,
   initializeVoiceEngine,

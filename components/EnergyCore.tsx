@@ -7,7 +7,7 @@ export type EnergyCoreState =
   | "listening"
   | "thinking"
   | "speaking"
-  | "alert";
+  | "no-limits";
 
 type EnergyCoreProps = {
   state?: EnergyCoreState;
@@ -89,7 +89,7 @@ export default function EnergyCore({
     window.addEventListener("resize", resize);
 
     const getModeValues = () => {
-      if (state === "alert") {
+      if (state === "no-limits") {
         return {
           core: "rgba(255, 45, 45, 1)",
           bright: "rgba(255, 130, 130, 1)",
@@ -212,9 +212,9 @@ export default function EnergyCore({
           : state === "speaking"
           ? 1 +
             Math.sin(time * 0.012) * 0.09
-          : state === "alert"
+          : state === "no-limits"
           ? 1 +
-            Math.sin(time * 0.018) * 0.11
+            Math.sin(time * 0.010) * 0.065
           : pulse;
 
       const coreRadius =
@@ -229,8 +229,8 @@ export default function EnergyCore({
         centerY,
         coreRadius * 2.9,
         colors.core,
-        state === "alert"
-          ? 0.3
+        state === "no-limits"
+          ? 0.22
           : 0.18
       );
 
@@ -239,8 +239,8 @@ export default function EnergyCore({
         centerY,
         coreRadius * 1.65,
         colors.core,
-        state === "alert"
-          ? 0.32
+        state === "no-limits"
+          ? 0.24
           : 0.22
       );
 
@@ -435,8 +435,8 @@ export default function EnergyCore({
       ctx.lineWidth = 2;
 
       ctx.shadowBlur =
-        state === "alert"
-          ? 30
+        state === "no-limits"
+          ? 22
           : 20;
 
       ctx.shadowColor =
@@ -597,8 +597,8 @@ export default function EnergyCore({
         coreRadius * 2.25;
 
       const lineAlpha =
-        state === "alert"
-          ? 0.65
+        state === "no-limits"
+          ? 0.42
           : 0.3;
 
       ctx.save();
@@ -787,10 +787,10 @@ export default function EnergyCore({
       }
 
       /* =========================================================
-         ALERT RIPPLE
+         NO LIMITS RIPPLE
          ========================================================= */
 
-      if (state === "alert") {
+      if (state === "no-limits") {
         for (let i = 0; i < 3; i++) {
           const ripple =
             ((time * 0.25 +
@@ -884,8 +884,8 @@ export default function EnergyCore({
           ? "THINKING..."
           : state === "speaking"
           ? "SPEAKING..."
-          : state === "alert"
-          ? "HIGH ALERT"
+          : state === "no-limits"
+          ? "NO LIMITS"
           : "ONLINE";
 
       ctx.fillText(
