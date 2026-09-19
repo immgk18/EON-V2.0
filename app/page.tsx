@@ -1335,328 +1335,310 @@ export default function Home() {
     };
 
 
-  /* =========================================================
-     UI
-     ========================================================= */
+  const [activePanel, setActivePanel] = useState<
+    "SYSTEM" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS"
+  >("SYSTEM");
+
+  const [terminalLines, setTerminalLines] = useState<string[]>([
+    "EON CORE INITIALIZED",
+    "AI        READY",
+    "WEB       READY",
+    "VISION    READY",
+    "MEMORY    READY",
+    "AGENTS    READY",
+    "WORKSPACE READY",
+  ]);
+
+  const selectPanel = (
+    panel: "SYSTEM" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS"
+  ) => {
+    setActivePanel(panel);
+
+    const panelMessages: Record<typeof panel, string> = {
+      SYSTEM: "SYSTEM STATUS PANEL OPEN",
+      CONTEXT: "CONTEXT ENGINE PANEL OPEN",
+      MEMORY: "MEMORY ENGINE PANEL OPEN",
+      VISION: "VISION MODULE READY",
+      WEB: "WEB INTELLIGENCE PANEL OPEN",
+      AGENTS: "AGENT ORCHESTRATION PANEL OPEN",
+      TOOLS: "TOOLS CONTROL PANEL OPEN",
+    };
+
+    setResponse(panelMessages[panel]);
+    setTerminalLines((lines) => [
+      ...lines.slice(-5),
+      `eon@core:~$ open ${panel.toLowerCase()}`,
+      panelMessages[panel],
+    ]);
+  };
+
+  const runTerminalCommand = (input: string) => {
+    const value = input.trim();
+    if (!value) return;
+
+    let output = "";
+
+    if (value.toLowerCase() === "system") {
+      output = "CORE ONLINE • AI READY • WEB READY • VISION READY • MEMORY READY • AGENTS READY • WORKSPACE READY";
+      selectPanel("SYSTEM");
+    } else if (value.toLowerCase().startsWith("route ")) {
+      const routed = routeUserRequest(value.slice(6));
+      output = `DESTINATION: ${routed.destination} • PRIORITY: ${routed.priority} • STATUS: READY`;
+    } else if (value.toLowerCase() === "clear") {
+      setTerminalLines([]);
+      return;
+    } else {
+      output = "COMMAND RECEIVED • USE SYSTEM, ROUTE <REQUEST>, OR CLEAR";
+    }
+
+    setTerminalLines((lines) => [
+      ...lines.slice(-5),
+      `eon@core:~$ ${value}`,
+      output,
+    ]);
+  };
 
   return (
-
     <main
-      className={`eon ${
-        mode === "NO_LIMITS"
-          ? "no-limits"
-          : ""
-      }`}
+      className={`eonDesktop ${mode === "NO_LIMITS" ? "no-limits" : ""}`}
     >
+      <canvas ref={canvasRef} className="stars" />
+      <div className="desktopGlow" />
 
-      <canvas
-        ref={canvasRef}
-        className="stars"
-      />
+      <header className="desktopTopBar">
+        <div className="desktopBrand">
+          <span className="brandMark">EON</span>
+          <span className="brandName">ENHANCED OPERATIONS NETWORK</span>
+        </div>
 
+        <nav className="desktopMenu" aria-label="EON desktop menu">
+          {["File", "Edit", "View", "Tools", "Agents", "Window"].map((item) => (
+            <button
+              key={item}
+              type="button"
+              className="menuItem"
+              onClick={() => {
+                const panel =
+                  item === "Agents"
+                    ? "AGENTS"
+                    : item === "Tools"
+                      ? "TOOLS"
+                      : item === "View"
+                        ? "CONTEXT"
+                        : "SYSTEM";
+                selectPanel(panel);
+              }}
+            >
+              {item}
+            </button>
+          ))}
+        </nav>
 
-      <div className="spaceGlow" />
-
-
-      {/* HEADER */}
-
-      <header className="topBar">
-
-        <div className="statusPanel">
-
+        <div className="desktopStatus">
           <span className="onlineDot" />
-
-          <span>
-            ONLINE
-          </span>
-
-          <span className="separator">
-            |
-          </span>
-
-          <span>
-            {mode === "NORMAL"
-              ? "NORMAL MODE"
-              : "NO LIMITS"}
-          </span>
-
+          <span>{mode === "NORMAL" ? "ONLINE" : "NO LIMITS"}</span>
         </div>
-
-
-        <div className="brandPanel">
-
-          <div className="brandTitle">
-            ENHANCED OPERATIONS NETWORK
-          </div>
-
-
-          <div className="brandLine" />
-
-
-          <div className="brandSub">
-            INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;
-            EXECUTION&nbsp;&nbsp; | &nbsp;&nbsp;
-            AUTONOMY&nbsp;&nbsp; | &nbsp;&nbsp;
-            BEYOND LIMITS
-          </div>
-
-        </div>
-
       </header>
 
-
-      {/* LEFT TOOLS */}
-
-      <aside
-        className="toolColumn leftTools"
-      >
-
-        {tools.map(
-          (tool) => (
-
+      <div className="desktopWorkspace">
+        <aside className="systemRail">
+          <div className="railTitle">SYSTEM</div>
+          {[
+            ["SYSTEM", "◈"],
+            ["CONTEXT", "◇"],
+            ["MEMORY", "◎"],
+            ["VISION", "◉"],
+            ["WEB", "⌁"],
+            ["AGENTS", "▦"],
+            ["TOOLS", "⚙"],
+          ].map(([panel, icon]) => (
             <button
-              className="toolButton"
-              key={tool.label}
+              key={panel}
               type="button"
-              onClick={() => {
+              className={`railButton ${
+                activePanel === panel ? "active" : ""
+              }`}
+              onClick={() => selectPanel(panel as typeof activePanel)}
+            >
+              <span>{icon}</span>
+              <small>{panel}</small>
+            </button>
+          ))}
+        </aside>
 
-                setResponse(
-                  `${tool.label} MODULE SELECTED`
-                );
+        <section className="coreViewport">
+          <div className="coreHeader">
+            <span>EON CORE</span>
+            <span className="coreHeaderLine" />
+            <span>{coreState.toUpperCase()}</span>
+          </div>
 
+          <div className="coreCanvas">
+            <EnergyCore state={coreState} />
+            {modeBurst && (
+              <div
+                className={`modeBurst ${
+                  mode === "NO_LIMITS"
+                    ? "enteringNoLimits"
+                    : "leavingNoLimits"
+                }`}
+              />
+            )}
+          </div>
+
+          <div className="corePrompt">
+            <span className="promptGlyph">&gt;_</span>
+            <form
+              className="desktopCommand"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitCommand();
               }}
             >
-
-              <span className="toolIcon">
-                {tool.icon}
-              </span>
-
-
-              <span>
-                {tool.label}
-              </span>
-
-            </button>
-
-          )
-        )}
-
-      </aside>
-
-
-      {/* RIGHT TOOLS */}
-
-      <aside
-        className="toolColumn rightTools"
-      >
-
-        {toolsRight.map(
-          (tool) => (
-
-            <button
-              className="toolButton"
-              key={tool.label}
-              type="button"
-              onClick={() => {
-
-                if (
-                  tool.label ===
-                  "VOICE"
-                ) {
-
-                  startVoice();
-
-                  return;
+              <input
+                value={command}
+                onChange={(event) => setCommand(event.target.value)}
+                placeholder={
+                  isProcessing
+                    ? "EON IS THINKING..."
+                    : "Ask EON anything..."
                 }
-
-
-                setResponse(
-                  `${tool.label} MODULE SELECTED`
-                );
-
-              }}
-            >
-
-              <span className="toolIcon">
-                {tool.icon}
-              </span>
-
-
-              <span>
-                {tool.label}
-              </span>
-
-            </button>
-
-          )
-        )}
-
-      </aside>
-
-
-      {/* ENERGY CORE */}
-
-      <section
-        className="coreArea"
-      >
-
-        <EnergyCore
-          state={
-            coreState
-          }
-        />
-
-
-        {modeBurst && (
-
-          <div
-            className={`modeBurst ${
-              mode === "NO_LIMITS"
-                ? "enteringNoLimits"
-                : "leavingNoLimits"
-            }`}
-          />
-
-        )}
-
-
-        {response && (
-
-          <div
-            className="response"
-          >
-            {response}
+                aria-label="Ask EON"
+                disabled={isProcessing}
+              />
+              <button
+                type="button"
+                className="voiceButton"
+                onClick={startVoice}
+                aria-label="Start voice command"
+              >
+                ◉
+              </button>
+              <button
+                type="submit"
+                className="coreSend"
+                disabled={isProcessing}
+                aria-label="Send command"
+              >
+                ↵
+              </button>
+            </form>
           </div>
 
-        )}
+          {response && <div className="desktopResponse">{response}</div>}
+        </section>
 
-
-        {/* SPEED ENGINE STATUS */}
-
-        {speedInfo && (
-
-          <div
-            className="speedStatus"
-            aria-label="EON speed routing status"
-          >
-            {speedInfo.route}
-            {" • "}
-            {speedInfo.priority}
+        <aside className="contextPanel">
+          <div className="panelHeading">
+            <span>{activePanel}</span>
+            <span className="panelIndicator">●</span>
           </div>
 
-        )}
+          <div className="panelBody">
+            {activePanel === "SYSTEM" && (
+              <>
+                <div className="metricRow"><span>CORE</span><b>ONLINE</b></div>
+                <div className="metricRow"><span>AI</span><b>READY</b></div>
+                <div className="metricRow"><span>WEB</span><b>READY</b></div>
+                <div className="metricRow"><span>VISION</span><b>READY</b></div>
+                <div className="metricRow"><span>MEMORY</span><b>READY</b></div>
+                <div className="metricRow"><span>MODE</span><b>{mode}</b></div>
+              </>
+            )}
 
-      </section>
+            {activePanel === "CONTEXT" && (
+              <div className="panelNote">
+                Current conversation context is available to EON through its
+                memory and request-routing layers.
+              </div>
+            )}
 
+            {activePanel === "MEMORY" && (
+              <div className="panelNote">
+                Local memory engine connected. Recent interaction context can
+                be stored and reused by EON.
+              </div>
+            )}
 
-      {/* COMMAND AREA */}
+            {activePanel === "VISION" && (
+              <div className="panelNote">
+                Vision module foundation ready. Image analysis can be connected
+                here without changing the EON core.
+              </div>
+            )}
 
-      <section
-        className="bottomArea"
-      >
+            {activePanel === "WEB" && (
+              <div className="panelNote">
+                Web intelligence route available through EON's request
+                router and grounded AI backend.
+              </div>
+            )}
 
+            {activePanel === "AGENTS" && (
+              <div className="panelNote">
+                Agent orchestration panel. Multi-step execution can be surfaced
+                here as EON's operator layer grows.
+              </div>
+            )}
+
+            {activePanel === "TOOLS" && (
+              <div className="panelNote">
+                Authorized tool integrations and hardware interfaces will appear
+                here.
+              </div>
+            )}
+          </div>
+
+          <div className="panelFooter">
+            ROUTE&nbsp; {speedInfo?.route ?? "STANDBY"}<br />
+            PRIORITY&nbsp; {speedInfo?.priority ?? "NORMAL"}
+          </div>
+        </aside>
+      </div>
+
+      <section className="terminalPanel">
+        <div className="terminalHeader">
+          <span>EON TERMINAL</span>
+          <span>COMMAND CONSOLE</span>
+        </div>
+        <div className="terminalOutput" aria-live="polite">
+          {terminalLines.map((line, index) => (
+            <div key={`${index}-${line}`} className="terminalLine">
+              {line}
+            </div>
+          ))}
+        </div>
         <form
-          className="commandBar"
-          onSubmit={(
-            event
-          ) => {
-
+          className="terminalInput"
+          onSubmit={(event) => {
             event.preventDefault();
-
-            submitCommand();
-
+            const form = event.currentTarget;
+            const input = form.elements.namedItem("terminal") as HTMLInputElement;
+            runTerminalCommand(input.value);
+            input.value = "";
           }}
         >
-
-          <span className="commandWave">
-            {isProcessing
-              ? "◉◉◉"
-              : "▮▮▮"}
-          </span>
-
-
+          <span>eon@core:~$</span>
           <input
-            value={command}
-            onChange={(
-              event
-            ) =>
-              setCommand(
-                event.target.value
-              )
-            }
-            placeholder={
-              isProcessing
-                ? "EON IS THINKING..."
-                : "Type or speak a command..."
-            }
-            aria-label="EON command"
-            disabled={
-              isProcessing
-            }
+            name="terminal"
+            placeholder="system"
+            autoComplete="off"
+            aria-label="EON terminal command"
           />
-
-
-          <button
-            type="submit"
-            className="sendButton"
-            aria-label="Send command"
-            disabled={
-              isProcessing
-            }
-          >
-            ➤
-          </button>
-
         </form>
-
-
-        <div
-          className="bottomControls"
-        >
-
-          <button
-            className="controlButton"
-            type="button"
-            onClick={
-              toggleMode
-            }
-          >
-
-            ⚡ &nbsp;
-
-            {mode === "NORMAL"
-              ? "NO LIMITS"
-              : "EON HAS LIMITS"}
-
-          </button>
-
-
-          <button
-            className="controlButton"
-            type="button"
-            onClick={
-              resetEON
-            }
-          >
-
-            ↻ &nbsp; RESET
-
-          </button>
-
-        </div>
-
-
-        <div className="footer">
-
-          INTELLIGENCE&nbsp;&nbsp; | &nbsp;&nbsp;
-          EXECUTION&nbsp;&nbsp; | &nbsp;&nbsp;
-          AUTONOMY&nbsp;&nbsp; | &nbsp;&nbsp;
-          BEYOND LIMITS
-
-        </div>
-
       </section>
 
+      <footer className="desktopFooter">
+        <span>INTELLIGENCE</span>
+        <span>EXECUTION</span>
+        <span>AUTONOMY</span>
+        <span>BEYOND LIMITS</span>
+        <button type="button" onClick={toggleMode}>
+          {mode === "NORMAL" ? "ENTER NO LIMITS" : "RESTORE NORMAL"}
+        </button>
+        <button type="button" onClick={resetEON}>RESET</button>
+      </footer>
     </main>
   );
+}
 }
