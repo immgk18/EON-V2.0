@@ -71,7 +71,7 @@ export type SpeedDecision = {
  */
 
 const LOCAL_INTENTS: CommandIntent[] = [
-  "MODE_ALERT",
+  "MODE_NO_LIMITS",
   "MODE_NORMAL",
   "SYSTEM_STATUS",
   "CURRENT_MODE",
