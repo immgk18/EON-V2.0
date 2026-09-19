@@ -460,6 +460,9 @@ export default function EnergyCore({
 
       const r = reactionRef.current;
 
+      const serious = red;
+      const playful = !serious;
+
       /*
        * Automatic tiny idle blink when camera is off.
        */
@@ -480,16 +483,33 @@ export default function EnergyCore({
           ? pointerRef.current.x
           : r.lookX;
 
-      const lookY =
+      const baseLookY =
         pointerRef.current.active
           ? pointerRef.current.y
           : r.lookY;
 
-      const cx = width / 2;
-      const cy = height / 2 - 15;
+      const playfulDriftX = Math.sin(time * 0.0018) * 0.035;
+      const playfulDriftY = Math.sin(time * 0.0024) * 0.028;
+
+      const lookX = serious
+        ? (pointerRef.current.active ? pointerRef.current.x : r.lookX)
+        : Math.max(-1, Math.min(1,
+            (pointerRef.current.active ? pointerRef.current.x : r.lookX) +
+            playfulDriftX
+          ));
+
+      const lookY = serious
+        ? baseLookY
+        : Math.max(-1, Math.min(1, baseLookY + playfulDriftY));
 
       const scale =
         Math.min(width, height) / 420;
+
+      const cx = width / 2;
+      const cy =
+        height / 2 -
+        15 +
+        (playful ? Math.sin(time * 0.002) * 2.5 * scale : 0);
 
       /*
        * TWO SIMPLE DIGITAL EYES
@@ -579,6 +599,11 @@ export default function EnergyCore({
             ) * 0.55
           : 0;
 
+      const playfulSmile =
+        playful && state !== "thinking" && state !== "listening"
+          ? 0.10 + Math.max(0, Math.sin(time * 0.0017)) * 0.05
+          : 0;
+
       const mouthOpen = Math.max(
         cameraOn ? r.mouth : 0,
         speaking
@@ -599,17 +624,30 @@ export default function EnergyCore({
 
       if (mouthOpen < 0.08) {
         /*
-         * Closed mouth = simple line.
+         * Normal mode gets a tiny friendly smile.
+         * No Limits stays precise and straight.
          */
-        ctx.moveTo(
-          cx - mouthWidth / 2,
-          mouthY
-        );
-
-        ctx.lineTo(
-          cx + mouthWidth / 2,
-          mouthY
-        );
+        if (playfulSmile > 0) {
+          ctx.moveTo(
+            cx - mouthWidth / 2,
+            mouthY - 2 * scale
+          );
+          ctx.quadraticCurveTo(
+            cx,
+            mouthY + playfulSmile * 18 * scale,
+            cx + mouthWidth / 2,
+            mouthY - 2 * scale
+          );
+        } else {
+          ctx.moveTo(
+            cx - mouthWidth / 2,
+            mouthY
+          );
+          ctx.lineTo(
+            cx + mouthWidth / 2,
+            mouthY
+          );
+        }
       } else {
         /*
          * Open mouth = small digital capsule.
