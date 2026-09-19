@@ -1512,8 +1512,8 @@ export default function Home() {
           <div
             className={`modeBurst ${
               mode === "NO_LIMITS"
-                ? "enteringAlert"
-                : "leavingAlert"
+                ? "enteringNoLimits"
+                : "leavingNoLimits"
             }`}
           />
 
