@@ -1757,7 +1757,7 @@ input:focus-visible {
 .corePrompt {
   position: absolute;
   left: 50%;
-  bottom: 16px;
+  bottom: 29px;
   width: min(680px, 78%);
   transform: translateX(-50%);
   display: flex;
