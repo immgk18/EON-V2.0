@@ -53,6 +53,7 @@ import {
   createChatSession,
   addChatTurn,
   setActiveChat,
+  deleteChatSession,
   type ChatSession,
 } from "@/lib/chatHistory";
 
@@ -1529,6 +1530,30 @@ export default function Home() {
     ]);
   };
 
+  const deleteHistoryChat = (chatId: string) => {
+    const wasActive = currentChatId === chatId;
+    deleteChatSession(chatId);
+
+    const sessions = loadChatSessions();
+    setChatSessions(sessions);
+
+    if (wasActive) {
+      const next = ensureActiveChatSession();
+      setCurrentChatId(next.id);
+      setResponse(
+        next.messages.length > 0
+          ? next.messages[next.messages.length - 1].content
+          : ""
+      );
+    }
+
+    setTerminalLines((lines) => [
+      ...lines.slice(-5),
+      `eon@core:~$ delete chat "${chatId}"`,
+      "CHAT DELETED • HISTORY UPDATED",
+    ]);
+  };
+
   const startNewChat = () => {
     const chat = createChatSession();
     setCurrentChatId(chat.id);
@@ -1703,6 +1728,7 @@ export default function Home() {
             ["AGENTS", "▦"],
             ["TOOLS", "⚙"],
             ["COMMANDS", "⌁"],
+            ...(mode === "NO_LIMITS" ? [["DESIGN", "◇"]] : []),
           ].map(([panel, icon]) => (
             <button
               key={panel}
@@ -1808,21 +1834,37 @@ export default function Home() {
                     </div>
                   ) : (
                     chatSessions.map((chat) => (
-                      <button
+                      <div
                         key={chat.id}
-                        type="button"
                         className={`historyItem ${
                           currentChatId === chat.id ? "selected" : ""
                         }`}
-                        onClick={() => openHistoryChat(chat.id)}
                       >
-                        <span className="historyItemTitle">
-                          {chat.title}
-                        </span>
-                        <span className="historyItemMeta">
-                          {chat.messages.length} MESSAGES
-                        </span>
-                      </button>
+                        <button
+                          type="button"
+                          className="historyItemOpen"
+                          onClick={() => openHistoryChat(chat.id)}
+                        >
+                          <span className="historyItemTitle">
+                            {chat.title}
+                          </span>
+                          <span className="historyItemMeta">
+                            {chat.messages.length} MESSAGES
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="historyDeleteButton"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deleteHistoryChat(chat.id);
+                          }}
+                          aria-label={`Delete chat ${chat.title}`}
+                          title="Delete chat"
+                        >
+                          ×
+                        </button>
+                      </div>
                     ))
                   )}
                 </div>
@@ -1899,6 +1941,27 @@ export default function Home() {
                 >
                   FOCUS COMMAND
                 </button>
+              </div>
+            )}
+
+            {activePanel === "DESIGN" && (
+              <div className="designWorkspace">
+                <div className="designStatusCard">
+                  <span>NO LIMITS DESIGN</span>
+                  <b>DESIGN WORKSPACE READY</b>
+                </div>
+                <div className="panelNote">
+                  EON can route CAD, EDA, 3D and BIM requests here. Actual
+                  platform execution requires a connected design adapter.
+                </div>
+                <div className="designTargetGrid">
+                  <div><b>PCB / EDA</b><small>PCB schematic + layout workflow</small></div>
+                  <div><b>3D / BIM</b><small>Architecture + 3D model workflow</small></div>
+                </div>
+                <div className="panelNote">
+                  Try: <strong>create a PCB design for a blinking LED</strong>
+                  or <strong>design a skyscraper</strong>.
+                </div>
               </div>
             )}
 
