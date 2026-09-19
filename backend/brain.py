@@ -27,7 +27,7 @@ EON_SYSTEM = (
     "Enhanced Operations Network"
 )
 
-EON_VERSION = "3.0.0"
+EON_VERSION = "4.0.0"
 
 DEFAULT_MODE = "NORMAL"
 
@@ -141,7 +141,7 @@ when necessary.
 
 CURRENT MODE
 ------------
-EON can operate in different interface modes.
+EON can operate in different interface modes and can route requests into connected execution services.
 
 NORMAL mode:
 Standard EON operation.
