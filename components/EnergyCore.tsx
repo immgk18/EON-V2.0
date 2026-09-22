@@ -406,270 +406,77 @@ export default function EnergyCore({
 
   /*
    * ------------------------------------------------------------
-   * FACE RENDER
+   * FACE RENDER — STATIC + MOUSE REACTIVE
    * ------------------------------------------------------------
-   * Just:
-   *   ● pupil
-   *   ● pupil
-   *   ─ mouth
-   *
-   * Nothing else.
+   * The face has no idle/playful/time-based animation.
+   * Its expression is redrawn only when state, size, camera,
+   * or mouse position changes.
    */
+
+  const [pointerTick, setPointerTick] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-
     if (!ctx) return;
 
     let width = 0;
     let height = 0;
     let dpr = 1;
-    let animation = 0;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-
       width = rect.width;
       height = rect.height;
       dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       canvas.width = Math.max(1, width * dpr);
       canvas.height = Math.max(1, height * dpr);
-
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
     };
 
-    resize();
-
-    window.addEventListener("resize", resize);
-
-    const draw = (time: number) => {
+    const draw = () => {
       ctx.clearRect(0, 0, width, height);
 
-      const red =
-        state === "no-limits" ||
-        state === "alert";
-
-      const primary = red
-        ? "255, 90, 90"
-        : "255, 224, 105";
-
-      const bright = red
-        ? "255, 225, 225"
-        : "255, 250, 210";
-
+      const red = state === "no-limits" || state === "alert";
+      const primary = red ? "255, 90, 90" : "255, 224, 105";
+      const bright = red ? "255, 225, 225" : "255, 250, 210";
       const r = reactionRef.current;
 
-      const serious = red;
-      const playful = !serious;
+      // Mouse position is the only continuous visual input.
+      const lookX = pointerRef.current.active ? pointerRef.current.x : r.lookX;
+      const lookY = pointerRef.current.active ? pointerRef.current.y : r.lookY;
 
-      /*
-       * Automatic tiny idle blink when camera is off.
-       */
-      const automaticBlink =
-        Math.sin(time * 0.00065) > 0.993
-          ? 1
-          : 0;
-
-      const blink = cameraOn
-        ? r.blink
-        : automaticBlink;
-
-      /*
-       * Pointer/touch takes priority.
-       */
-      const baseLookX =
-        pointerRef.current.active
-          ? pointerRef.current.x
-          : r.lookX;
-
-      const baseLookY =
-        pointerRef.current.active
-          ? pointerRef.current.y
-          : r.lookY;
-
-      const playfulDriftX = Math.sin(time * 0.0018) * 0.035;
-      const playfulDriftY = Math.sin(time * 0.0024) * 0.028;
-
-      const lookX = serious
-        ? baseLookX
-        : Math.max(
-            -1,
-            Math.min(1, baseLookX + playfulDriftX)
-          );
-
-      const lookY = serious
-        ? baseLookY
-        : Math.max(
-            -1,
-            Math.min(1, baseLookY + playfulDriftY)
-          );
-
-      /*
-       * PLAYFUL BEHAVIOR LOOP
-       * EON occasionally behaves like a tiny digital creature
-       * while idle. The loop is deterministic, so it never
-       * changes behavior every frame or causes React rerenders.
-       *
-       *  0-7s   curious idle / look around
-       *  7-11s  dizzy eye-spin
-       * 11-15s  big yawn
-       * 15-21s  plays with tiny digital hands
-       * 21-28s  butterfly appears + EON admires it
-       * 28-32s  sleepy blink / head bob
-       */
-      const playfulLoop = time % 32000;
-
-      let playfulAction =
-        "curious";
-
-      /*
-       * Explicit chat commands can temporarily override the
-       * automatic personality loop. The parent sends a small
-       * action name; no AI/tool call is required.
-       */
-      if (playful && playfulCommand) {
-        playfulAction = playfulCommand;
-      }
-
-      if (
-        playful &&
-        !playfulCommand &&
-        state === "idle"
-      ) {
-        if (playfulLoop >= 7000 && playfulLoop < 11000) {
-          playfulAction = "dizzy";
-        } else if (
-          playfulLoop >= 11000 &&
-          playfulLoop < 15000
-        ) {
-          playfulAction = "yawn";
-        } else if (
-          playfulLoop >= 15000 &&
-          playfulLoop < 21000
-        ) {
-          playfulAction = "hands";
-        } else if (
-          playfulLoop >= 21000 &&
-          playfulLoop < 28000
-        ) {
-          playfulAction = "butterfly";
-        } else if (playfulLoop >= 28000) {
-          playfulAction = "sleepy";
-        }
-      }
-
-      const scale =
-        Math.min(width, height) /
-        (immersive ? 285 : 420);
-
+      const scale = Math.min(width, height) / (immersive ? 285 : 420);
       const cx = width / 2;
-      const cy =
-        height / 2 -
-        15 +
-        (playful ? Math.sin(time * 0.002) * 2.5 * scale : 0);
-
-      /*
-       * TWO SIMPLE DIGITAL EYES
-       */
+      const cy = height / 2 - 15;
 
       const eyeGap = 58 * scale;
-      const pupilRange = 10 * scale;
+      const pupilRange = 16 * scale;
       const pupilSize = 10 * scale;
-
-      const dizzyProgress =
-        Math.max(
-          0,
-          Math.min(1, (playfulLoop - 7000) / 4000)
-        );
-
-      const dizzyAngle =
-        dizzyProgress * Math.PI * 2 * 4;
-
-      const dizzyX =
-        Math.cos(dizzyAngle) * pupilRange * 0.82;
-
-      const dizzyY =
-        Math.sin(dizzyAngle) * pupilRange * 0.52;
-
-      const pupilX =
-        playfulAction === "dizzy"
-          ? dizzyX
-          : lookX * pupilRange;
-
-      const pupilY =
-        playfulAction === "dizzy"
-          ? dizzyY
-          : lookY * pupilRange * 0.65;
-
       const eyeY = cy - 10 * scale;
+      const pupilX = lookX * pupilRange;
+      const pupilY = lookY * pupilRange * 0.65;
 
       const drawEye = (x: number) => {
         ctx.save();
-
         ctx.translate(x, eyeY);
 
-        /*
-         * Eye closes when user blinks.
-         */
-        const open =
-          Math.max(0.04, 1 - blink * 0.96);
-
-        ctx.scale(1, open);
-
-        /*
-         * Very simple digital eye:
-         * a soft glowing dot with a faint dark field.
-         */
+        // Soft transparent eye field.
         ctx.beginPath();
-
-        ctx.arc(
-          0,
-          0,
-          18 * scale,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fillStyle =
-          "rgba(" + primary + ", 0.055)";
-
+        ctx.arc(0, 0, 20 * scale, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(" + primary + ", 0.055)";
         ctx.fill();
 
-        /*
-         * Pupil.
-         */
-        const localPupilX =
-          playfulAction === "dizzy"
-            ? pupilX
-            : pupilX;
-
-        const localPupilY =
-          playfulAction === "dizzy"
-            ? pupilY
-            : pupilY;
-
+        // Pupil follows the mouse directly.
         ctx.beginPath();
-
-        ctx.arc(
-          localPupilX,
-          localPupilY,
-          pupilSize,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fillStyle =
-          "rgba(" + bright + ", 1)";
-
-        ctx.shadowBlur = 18 * scale;
-        ctx.shadowColor =
-          "rgba(" + primary + ", 0.95)";
-
+        ctx.arc(pupilX, pupilY, pupilSize, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(" + bright + ", 1)";
+        ctx.shadowBlur = 22 * scale;
+        ctx.shadowColor = "rgba(" + primary + ", 0.95)";
         ctx.fill();
 
         ctx.restore();
@@ -678,615 +485,47 @@ export default function EnergyCore({
       drawEye(cx - eyeGap);
       drawEye(cx + eyeGap);
 
-      /*
-       * --------------------------------------------------------
-       * PLAYFUL DIGITAL ANIMATIONS
-       * --------------------------------------------------------
-       */
-
-      const actionT =
-        playfulLoop >= 7000
-          ? playfulLoop
-          : playfulLoop;
-
-      /*
-       * DIZZY:
-       * Tiny orbital rings make the eyes look like they have
-       * spun themselves silly.
-       */
-      if (
-        playfulAction === "dizzy" ||
-        playfulAction === "spin"
-      ) {
-        const dizzyPulse =
-          0.55 +
-          Math.sin(actionT * 0.018) * 0.18;
-
-        ctx.save();
-        ctx.strokeStyle =
-          "rgba(" + bright + ", " + dizzyPulse + ")";
-
-        ctx.lineWidth = 1.6 * scale;
-        ctx.shadowBlur = 9 * scale;
-        ctx.shadowColor =
-          "rgba(" + primary + ", 0.7)";
-
-        for (const side of [-1, 1]) {
-          ctx.beginPath();
-          ctx.arc(
-            cx + side * eyeGap,
-            eyeY,
-            25 * scale,
-            0,
-            Math.PI * 1.45
-          );
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.moveTo(
-            cx + side * eyeGap + 17 * scale,
-            eyeY - 17 * scale
-          );
-          ctx.lineTo(
-            cx + side * eyeGap + 22 * scale,
-            eyeY - 11 * scale
-          );
-          ctx.stroke();
-        }
-
-        ctx.font =
-          Math.max(10, 11 * scale) + "px monospace";
-        ctx.textAlign = "center";
-        ctx.fillStyle =
-          "rgba(" + bright + ", 0.72)";
-        ctx.fillText(
-          "woah...",
-          cx,
-          cy - 92 * scale
-        );
-
-        ctx.restore();
-      }
-
-      /*
-       * DIGITAL HANDS:
-       * Two tiny line-art hands wave and play near EON's face.
-       */
-      if (
-        playfulAction === "hands" ||
-        playfulAction === "wave" ||
-        playfulAction === "dance"
-      ) {
-        const handT =
-          Math.max(0, (playfulLoop - 15000) / 6000);
-        const wave =
-          Math.sin(handT * Math.PI * 5);
-
-        ctx.save();
-        ctx.strokeStyle =
-          "rgba(" + bright + ", 0.9)";
-        ctx.lineWidth = 2 * scale;
-        ctx.lineCap = "round";
-        ctx.shadowBlur = 10 * scale;
-        ctx.shadowColor =
-          "rgba(" + primary + ", 0.75)";
-
-        const drawHand = (
-          handX: number,
-          direction: number
-        ) => {
-          const wristY =
-            cy + 22 * scale +
-            wave * 4 * scale;
-
-          ctx.beginPath();
-          ctx.moveTo(
-            handX,
-            wristY + 30 * scale
-          );
-          ctx.lineTo(
-            handX + direction * 8 * scale,
-            wristY + 5 * scale
-          );
-
-          for (let finger = -2; finger <= 2; finger++) {
-            const fx =
-              handX +
-              direction *
-                (8 + Math.abs(finger) * 2) *
-                scale;
-            const fy =
-              wristY -
-              (15 + (2 - Math.abs(finger)) * 4) *
-                scale +
-              Math.sin(
-                handT * 12 +
-                finger
-              ) *
-                4 *
-                scale;
-
-            ctx.moveTo(
-              fx,
-              fy + 12 * scale
-            );
-            ctx.lineTo(
-              fx + direction * 5 * scale,
-              fy
-            );
-          }
-
-          ctx.stroke();
-        };
-
-        drawHand(
-          cx - 92 * scale,
-          -1
-        );
-        drawHand(
-          cx + 92 * scale,
-          1
-        );
-
-        ctx.font =
-          Math.max(9, 10 * scale) + "px monospace";
-        ctx.textAlign = "center";
-        ctx.fillStyle =
-          "rgba(" + bright + ", 0.68)";
-        ctx.fillText(
-          "fidget mode",
-          cx,
-          cy + 112 * scale
-        );
-
-        ctx.restore();
-      }
-
-      /*
-       * BUTTERFLY:
-       * A tiny glowing digital butterfly floats in.
-       * EON follows it with its eyes and then admires it.
-       */
-      if (
-        playfulAction === "butterfly" ||
-        playfulAction === "admire"
-      ) {
-        const butterflyT =
-          Math.max(
-            0,
-            Math.min(
-              1,
-              (playfulLoop - 21000) / 7000
-            )
-          );
-
-        const butterflyX =
-          cx +
-          Math.sin(butterflyT * Math.PI * 2) *
-            105 *
-            scale;
-
-        const butterflyY =
-          cy -
-          55 * scale -
-          butterflyT * 12 * scale +
-          Math.sin(butterflyT * Math.PI * 4) *
-            18 *
-            scale;
-
-        const wingBeat =
-          0.72 +
-          Math.sin(time * 0.025) * 0.28;
-
-        /*
-         * During the butterfly scene the eyes gently
-         * follow the visitor instead of the pointer.
-         */
-        if (!pointerRef.current.active) {
-          const followX =
-            Math.max(
-              -1,
-              Math.min(
-                1,
-                (butterflyX - cx) /
-                  (120 * scale)
-              )
-            );
-
-          const followY =
-            Math.max(
-              -1,
-              Math.min(
-                1,
-                (butterflyY - eyeY) /
-                  (100 * scale)
-              )
-            );
-
-          r.lookX +=
-            (followX - r.lookX) * 0.045;
-          r.lookY +=
-            (followY - r.lookY) * 0.045;
-        }
-
-        ctx.save();
-        ctx.translate(
-          butterflyX,
-          butterflyY
-        );
-        ctx.scale(
-          0.85 + wingBeat * 0.18,
-          0.85
-        );
-
-        ctx.strokeStyle =
-          "rgba(" + bright + ", 0.95)";
-        ctx.fillStyle =
-          "rgba(" + primary + ", 0.16)";
-        ctx.lineWidth = 1.7 * scale;
-        ctx.shadowBlur = 14 * scale;
-        ctx.shadowColor =
-          "rgba(" + primary + ", 0.9)";
-
-        for (const side of [-1, 1]) {
-          ctx.beginPath();
-          ctx.ellipse(
-            side * 10 * scale,
-            -6 * scale,
-            13 * scale,
-            18 * scale,
-            side * 0.35,
-            0,
-            Math.PI * 2
-          );
-          ctx.fill();
-          ctx.stroke();
-        }
-
-        ctx.beginPath();
-        ctx.moveTo(
-          0,
-          -12 * scale
-        );
-        ctx.lineTo(
-          0,
-          14 * scale
-        );
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(
-          0,
-          -11 * scale
-        );
-        ctx.quadraticCurveTo(
-          -7 * scale,
-          -20 * scale,
-          -10 * scale,
-          -19 * scale
-        );
-        ctx.moveTo(
-          0,
-          -11 * scale
-        );
-        ctx.quadraticCurveTo(
-          7 * scale,
-          -20 * scale,
-          10 * scale,
-          -19 * scale
-        );
-        ctx.stroke();
-
-        ctx.restore();
-
-        /*
-         * Tiny admiration sparkles.
-         */
-        for (let i = 0; i < 4; i++) {
-          const a =
-            time * 0.0012 +
-            i * (Math.PI / 2);
-
-          const sx =
-            butterflyX +
-            Math.cos(a) * 25 * scale;
-          const sy =
-            butterflyY +
-            Math.sin(a) * 20 * scale;
-
-          ctx.save();
-          ctx.strokeStyle =
-            "rgba(" + bright + ", 0.72)";
-          ctx.lineWidth = 1.2 * scale;
-          ctx.beginPath();
-          ctx.moveTo(
-            sx - 3 * scale,
-            sy
-          );
-          ctx.lineTo(
-            sx + 3 * scale,
-            sy
-          );
-          ctx.moveTo(
-            sx,
-            sy - 3 * scale
-          );
-          ctx.lineTo(
-            sx,
-            sy + 3 * scale
-          );
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
-
-      /*
-       * SLEEPY:
-       * EON slowly droops, blinks, then wakes for the next loop.
-       */
-      if (
-        playfulAction === "sleepy" ||
-        playfulAction === "yawn"
-      ) {
-        const sleepyT =
-          (playfulLoop - 28000) / 4000;
-
-        const sleepyBlink =
-          Math.sin(
-            Math.max(0, sleepyT) * Math.PI
-          );
-
-        ctx.save();
-        ctx.strokeStyle =
-          "rgba(" + bright + ", 0.72)";
-        ctx.lineWidth = 1.4 * scale;
-        ctx.setLineDash([
-          3 * scale,
-          4 * scale,
-        ]);
-
-        ctx.beginPath();
-        ctx.arc(
-          cx,
-          cy - 92 * scale,
-          28 * scale,
-          Math.PI * 1.05,
-          Math.PI * 1.85
-        );
-        ctx.stroke();
-
-        ctx.setLineDash([]);
-
-        ctx.font =
-          Math.max(9, 10 * scale) + "px monospace";
-        ctx.textAlign = "center";
-        ctx.fillStyle =
-          "rgba(" +
-          bright +
-          ", " +
-          (0.35 + sleepyBlink * 0.45) +
-          ")";
-
-        ctx.fillText(
-          "zzz",
-          cx + 48 * scale,
-          cy - 112 * scale
-        );
-
-        ctx.restore();
-      }
-
-      /*
-       * LAUGH / SURPRISE reactions from chat commands.
-       */
-      if (
-        playfulAction === "laugh" ||
-        playfulAction === "surprised"
-      ) {
-        ctx.save();
-
-        const reactionPulse =
-          0.55 +
-          Math.abs(Math.sin(time * 0.012)) * 0.45;
-
-        ctx.strokeStyle =
-          "rgba(" + bright + ", " +
-          reactionPulse + ")";
-
-        ctx.lineWidth = 1.7 * scale;
-        ctx.shadowBlur = 12 * scale;
-        ctx.shadowColor =
-          "rgba(" + primary + ", 0.8)";
-
-        for (let i = 0; i < 6; i++) {
-          const angle =
-            i * (Math.PI / 3) +
-            time * 0.0007;
-
-          const inner = 88 * scale;
-          const outer =
-            (playfulAction === "surprised"
-              ? 112
-              : 102) * scale;
-
-          ctx.beginPath();
-          ctx.moveTo(
-            cx + Math.cos(angle) * inner,
-            cy + Math.sin(angle) * inner
-          );
-          ctx.lineTo(
-            cx + Math.cos(angle) * outer,
-            cy + Math.sin(angle) * outer
-          );
-          ctx.stroke();
-        }
-
-        ctx.font =
-          Math.max(10, 11 * scale) +
-          "px monospace";
-        ctx.textAlign = "center";
-        ctx.fillStyle =
-          "rgba(" + bright + ", 0.78)";
-        ctx.fillText(
-          playfulAction === "laugh"
-            ? "hehe"
-            : "WHOA!",
-          cx,
-          cy - 94 * scale
-        );
-
-        ctx.restore();
-      }
-
-      /*
-       * SIMPLE MOUTH
-       */
-
-      const speaking =
-        state === "speaking"
-          ? 0.30 +
-            Math.abs(
-              Math.sin(time * 0.014)
-            ) * 0.55
-          : 0;
-
-      const playfulSmile =
-        playful && state !== "thinking" && state !== "listening"
-          ? 0.10 + Math.max(0, Math.sin(time * 0.0017)) * 0.05
-          : 0;
-
-      const yawnProgress =
-        Math.max(
-          0,
-          Math.min(
-            1,
-            (playfulLoop - 11000) / 4000
-          )
-        );
-
-      const yawnAmount =
-        playfulAction === "yawn"
-          ? Math.sin(yawnProgress * Math.PI)
-          : 0;
-
-      const laughAmount =
-        playfulAction === "laugh"
-          ? 0.45 +
-            Math.abs(Math.sin(time * 0.018)) * 0.45
-          : 0;
-
-      const surpriseAmount =
-        playfulAction === "surprised"
-          ? 0.72
-          : 0;
-
-      const mouthOpen = Math.max(
-        cameraOn ? r.mouth : 0,
-        speaking,
-        yawnAmount * 0.95,
-        laughAmount,
-        surpriseAmount
-      );
-
-      const mouthWidth =
-        46 * scale;
-
-      const mouthHeight =
-        (2 + mouthOpen * 22) * scale;
-
-      const mouthY =
-        cy +
-        62 * scale +
-        (playfulAction === "yawn"
-          ? Math.sin(yawnProgress * Math.PI) *
-            4 *
-            scale
-          : 0);
+      // Static mouth: slightly open only while EON is speaking.
+      const mouthOpen = state === "speaking" ? 0.48 : 0;
+      const mouthWidth = 46 * scale;
+      const mouthY = cy + 62 * scale;
 
       ctx.save();
-
       ctx.beginPath();
 
-      if (mouthOpen < 0.08) {
-        /*
-         * Normal mode gets a tiny friendly smile.
-         * No Limits stays precise and straight.
-         */
-        if (playfulSmile > 0) {
-          ctx.moveTo(
-            cx - mouthWidth / 2,
-            mouthY - 2 * scale
-          );
-          ctx.quadraticCurveTo(
-            cx,
-            mouthY + playfulSmile * 18 * scale,
-            cx + mouthWidth / 2,
-            mouthY - 2 * scale
-          );
-        } else {
-          ctx.moveTo(
-            cx - mouthWidth / 2,
-            mouthY
-          );
-          ctx.lineTo(
-            cx + mouthWidth / 2,
-            mouthY
-          );
-        }
-      } else {
-        /*
-         * Open mouth = small digital capsule.
-         */
+      if (mouthOpen > 0) {
         ctx.ellipse(
           cx,
           mouthY,
           mouthWidth * 0.48,
-          mouthHeight,
+          7 * scale,
           0,
           0,
           Math.PI * 2
         );
-      }
-
-      ctx.strokeStyle =
-        "rgba(" + bright + ", 1)";
-
-      ctx.lineWidth =
-        2.2 * scale;
-
-      ctx.lineCap = "round";
-
-      ctx.shadowBlur = 14 * scale;
-      ctx.shadowColor =
-        "rgba(" + primary + ", 0.9)";
-
-      ctx.stroke();
-
-      if (mouthOpen > 0.08) {
-        ctx.fillStyle =
-          "rgba(0, 0, 0, 0.55)";
-
+        ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
         ctx.fill();
+      } else {
+        ctx.moveTo(cx - mouthWidth / 2, mouthY);
+        ctx.lineTo(cx + mouthWidth / 2, mouthY);
       }
 
+      ctx.strokeStyle = "rgba(" + bright + ", 1)";
+      ctx.lineWidth = 2.2 * scale;
+      ctx.lineCap = "round";
+      ctx.shadowBlur = 14 * scale;
+      ctx.shadowColor = "rgba(" + primary + ", 0.9)";
+      ctx.stroke();
       ctx.restore();
-
-      animation =
-        requestAnimationFrame(draw);
     };
 
-    animation =
-      requestAnimationFrame(draw);
+    resize();
+    window.addEventListener("resize", resize);
 
     return () => {
-      window.removeEventListener(
-        "resize",
-        resize
-      );
-
-      cancelAnimationFrame(animation);
+      window.removeEventListener("resize", resize);
     };
-  }, [state, cameraOn]);
+  }, [state, cameraOn, immersive, pointerTick]);
 
   /*
    * ------------------------------------------------------------
@@ -1327,6 +566,8 @@ export default function EnergyCore({
       ),
       active: true,
     };
+
+    setPointerTick((tick) => tick + 1);
   };
 
   const handlePointerMove = (
@@ -1340,6 +581,9 @@ export default function EnergyCore({
 
   const handlePointerLeave = () => {
     pointerRef.current.active = false;
+    pointerRef.current.x = 0;
+    pointerRef.current.y = 0;
+    setPointerTick((tick) => tick + 1);
   };
 
   useEffect(() => {
