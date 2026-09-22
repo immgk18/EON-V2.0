@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -7,10 +7,11 @@ from brain import get_brain_info
 from orchestration import orchestrate
 from tools import run_tool_request
 from vision import analyze_image
+from file_analysis import analyze_uploaded_files
 
 EON_NAME = "EON"
 EON_SYSTEM = "Enhanced Operations Network"
-EON_VERSION = "4.0.0"
+EON_VERSION = "4.1.0"
 
 app = FastAPI(
     title="EON — Enhanced Operations Network",
@@ -82,6 +83,7 @@ async def root():
             "chat": True,
             "web_grounding": True,
             "vision": True,
+            "files": True,
             "tools": True,
             "orchestration": True,
         },
@@ -99,6 +101,7 @@ async def health():
             "chat": True,
             "web_grounding": True,
             "vision": True,
+            "files": True,
             "tools": True,
             "orchestration": True,
         },
@@ -113,7 +116,6 @@ async def brain():
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     message = request.message.strip()
-
     if not message:
         raise HTTPException(status_code=400, detail="No message received.")
 
@@ -128,14 +130,12 @@ async def chat(request: ChatRequest):
             memory_context=memory_context,
             destination=destination,
         )
-
         return ChatResponse(
             response=result["response"],
             status=result.get("status", "success"),
             model=result.get("model", "eon-ai"),
             mode=result.get("mode", mode),
         )
-
     except Exception as error:
         print("EON CHAT ERROR:", error)
         raise HTTPException(status_code=503, detail=str(error))
@@ -160,13 +160,11 @@ async def vision(request: VisionRequest):
             mime_type=request.mime_type,
             prompt=request.prompt,
         )
-
         return VisionResponse(
             response=result["response"],
             status=result.get("status", "vision_complete"),
             model=result.get("model", "eon-vision"),
         )
-
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error))
     except Exception as error:
@@ -174,10 +172,32 @@ async def vision(request: VisionRequest):
         raise HTTPException(status_code=503, detail=str(error))
 
 
+@app.post("/api/files/analyze")
+async def analyze_files(
+    files: list[UploadFile] = File(...),
+    question: str = Form(""),
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="No files received.")
+
+    try:
+        result = await analyze_uploaded_files(files, question)
+        return {
+            "response": result["response"],
+            "status": result.get("status", "file_analysis_complete"),
+            "model": result.get("model", "eon-ai"),
+            "files": [file.filename for file in files],
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        print("EON FILE ANALYSIS ERROR:", error)
+        raise HTTPException(status_code=503, detail=str(error))
+
+
 @app.post("/api/orchestrate", response_model=OrchestrationResponse)
 async def orchestrate_request(request: OrchestrationRequest):
     task = request.task.strip()
-
     if not task:
         raise HTTPException(status_code=400, detail="No task received.")
 
@@ -188,14 +208,12 @@ async def orchestrate_request(request: OrchestrationRequest):
             memory_context=request.memory_context,
             agents=request.agents,
         )
-
         return OrchestrationResponse(
             response=result["response"],
             status=result.get("status", "orchestration_complete"),
             model=result.get("model", "eon-ai"),
             agents=result.get("agents", []),
         )
-
     except Exception as error:
         print("EON ORCHESTRATION ERROR:", error)
         raise HTTPException(status_code=503, detail=str(error))
@@ -203,9 +221,4 @@ async def orchestrate_request(request: OrchestrationRequest):
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=10000,
-    )
+    uvicorn.run(app, host="0.0.0.0", port=10000)
