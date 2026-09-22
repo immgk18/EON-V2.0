@@ -163,6 +163,15 @@ export default function Home() {
   const [playfulCommand, setPlayfulCommand] =
     useState("");
 
+  const [faceEnabled, setFaceEnabled] = useState(true);
+  const [eyeTracking, setEyeTracking] = useState(true);
+  const [trackingSensitivity, setTrackingSensitivity] = useState(1);
+  const [faceOpacity, setFaceOpacity] = useState(0.34);
+  const [faceScale, setFaceScale] = useState(1);
+  const [faceGlow, setFaceGlow] = useState(true);
+  const [faceOffsetX, setFaceOffsetX] = useState(0);
+  const [faceOffsetY, setFaceOffsetY] = useState(-4);
+
   const triggerPlayfulReaction = (
     text: string
   ) => {
@@ -1766,8 +1775,21 @@ export default function Home() {
 
               {(!response && (chatSessions.find((chat) => chat.id === currentChatId)?.messages.length ?? 0) === 0) && (
                 <div className="welcomeState">
-                  <div className="welcomeCore">
-                    <EnergyCore state={coreState} playfulCommand={playfulCommand} immersive />
+                  <div
+                    className={`welcomeCore ${faceEnabled ? "" : "faceDisabled"}`}
+                    style={{
+                      opacity: faceEnabled ? faceOpacity : 0,
+                      transform: "translate(calc(-50% + " + faceOffsetX + "px), calc(-54% + " + faceOffsetY + "px)) scale(" + faceScale + ")",
+                    }}
+                  >
+                    <EnergyCore
+                      state={coreState}
+                      playfulCommand={playfulCommand}
+                      immersive
+                      eyeTracking={eyeTracking}
+                      trackingSensitivity={trackingSensitivity}
+                      glowEnabled={faceGlow}
+                    />
                     {modeBurst && <div className={`modeBurst ${mode === "NO_LIMITS" ? "enteringNoLimits" : "leavingNoLimits"}`} />}
                   </div>
                   <h1>{mode === "NORMAL" ? "How can I help you?" : "NO LIMITS"}</h1>
@@ -1879,10 +1901,72 @@ export default function Home() {
             )}
 
             {activePanel === "SETTINGS" && (
-              <div className="drawerStack">
+              <div className="drawerStack settingsPanel">
                 <div className="drawerMetric"><span>MODE</span><b>{mode}</b></div>
                 <div className="drawerMetric"><span>CORE</span><b>{coreState.toUpperCase()}</b></div>
                 <div className="drawerMetric"><span>ROUTE</span><b>{speedInfo?.route ?? "STANDBY"}</b></div>
+
+                <div className="settingsSection">
+                  <div className="settingsTitle">EON APPEARANCE</div>
+                  <label className="settingsToggle">
+                    <span><b>Immersive Face</b><small>Show EON's holographic face</small></span>
+                    <input type="checkbox" checked={faceEnabled} onChange={(e) => setFaceEnabled(e.target.checked)} />
+                  </label>
+                  <label className="settingsToggle">
+                    <span><b>Eye Tracking</b><small>Eyes follow the pointer</small></span>
+                    <input type="checkbox" checked={eyeTracking} onChange={(e) => setEyeTracking(e.target.checked)} />
+                  </label>
+                  <label className="settingsToggle">
+                    <span><b>Glow</b><small>Enable eye and mouth glow</small></span>
+                    <input type="checkbox" checked={faceGlow} onChange={(e) => setFaceGlow(e.target.checked)} />
+                  </label>
+                </div>
+
+                <div className="settingsSection">
+                  <div className="settingsTitle">TRACKING</div>
+                  <label className="settingsRange">
+                    <span><b>Sensitivity</b><em>{trackingSensitivity === 0.6 ? "LOW" : trackingSensitivity === 1 ? "MEDIUM" : "HIGH"}</em></span>
+                    <input type="range" min="0.6" max="1.4" step="0.1" value={trackingSensitivity} onChange={(e) => setTrackingSensitivity(Number(e.target.value))} />
+                  </label>
+                </div>
+
+                <div className="settingsSection">
+                  <div className="settingsTitle">VISUAL</div>
+                  <label className="settingsRange">
+                    <span><b>Face Opacity</b><em>{Math.round(faceOpacity * 100)}%</em></span>
+                    <input type="range" min="0.12" max="0.55" step="0.01" value={faceOpacity} onChange={(e) => setFaceOpacity(Number(e.target.value))} />
+                  </label>
+                  <label className="settingsRange">
+                    <span><b>Face Scale</b><em>{Math.round(faceScale * 100)}%</em></span>
+                    <input type="range" min="0.75" max="1.25" step="0.01" value={faceScale} onChange={(e) => setFaceScale(Number(e.target.value))} />
+                  </label>
+                  <label className="settingsRange">
+                    <span><b>Horizontal Position</b><em>{faceOffsetX > 0 ? "+" : ""}{faceOffsetX}px</em></span>
+                    <input type="range" min="-100" max="100" step="1" value={faceOffsetX} onChange={(e) => setFaceOffsetX(Number(e.target.value))} />
+                  </label>
+                  <label className="settingsRange">
+                    <span><b>Vertical Position</b><em>{faceOffsetY > 0 ? "+" : ""}{faceOffsetY}px</em></span>
+                    <input type="range" min="-80" max="80" step="1" value={faceOffsetY} onChange={(e) => setFaceOffsetY(Number(e.target.value))} />
+                  </label>
+                </div>
+
+                <div className="settingsSection">
+                  <div className="settingsTitle">MODE COLORS</div>
+                  <div className="colorPreviewRow"><span><i className="colorDot gold" />NORMAL</span><b>GOLD</b></div>
+                  <div className="colorPreviewRow"><span><i className="colorDot red" />NO LIMITS</span><b>RED</b></div>
+                </div>
+
+                <button type="button" className="drawerPrimary" onClick={() => {
+                  setFaceEnabled(true);
+                  setEyeTracking(true);
+                  setTrackingSensitivity(1);
+                  setFaceOpacity(0.34);
+                  setFaceScale(1);
+                  setFaceGlow(true);
+                  setFaceOffsetX(0);
+                  setFaceOffsetY(-4);
+                }}>RESET FACE SETTINGS</button>
+
                 <button type="button" className="drawerPrimary" onClick={() => setTerminalOpen((open) => !open)}>{terminalOpen ? "HIDE TERMINAL" : "OPEN TERMINAL"}</button>
               </div>
             )}
