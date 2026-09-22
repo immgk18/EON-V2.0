@@ -1750,6 +1750,22 @@ export default function Home() {
 
         <section className="chatMain">
           <div className="conversationViewport">
+            <div
+              className={`chatFaceBackdrop ${faceEnabled ? "" : "faceDisabled"}`}
+              style={{
+                opacity: faceEnabled ? faceOpacity : 0,
+                transform: "translate(calc(-50% + " + faceOffsetX + "px), calc(-52% + " + faceOffsetY + "px)) scale(" + faceScale + ")",
+              }}
+            >
+              <EnergyCore
+                state={coreState}
+                playfulCommand={playfulCommand}
+                immersive
+                eyeTracking={eyeTracking}
+                trackingSensitivity={trackingSensitivity}
+                glowEnabled={faceGlow}
+              />
+            </div>
             <div className="conversationInner">
               {(chatSessions.find((chat) => chat.id === currentChatId)?.messages ?? []).map((message) => (
                 <div key={message.id} className={`messageRow ${message.role === "user" ? "userRow" : "eonRow"}`}>
@@ -1775,21 +1791,7 @@ export default function Home() {
 
               {(!response && (chatSessions.find((chat) => chat.id === currentChatId)?.messages.length ?? 0) === 0) && (
                 <div className="welcomeState">
-                  <div
-                    className={`welcomeCore ${faceEnabled ? "" : "faceDisabled"}`}
-                    style={{
-                      opacity: faceEnabled ? faceOpacity : 0,
-                      transform: "translate(calc(-50% + " + faceOffsetX + "px), calc(-54% + " + faceOffsetY + "px)) scale(" + faceScale + ")",
-                    }}
-                  >
-                    <EnergyCore
-                      state={coreState}
-                      playfulCommand={playfulCommand}
-                      immersive
-                      eyeTracking={eyeTracking}
-                      trackingSensitivity={trackingSensitivity}
-                      glowEnabled={faceGlow}
-                    />
+                  <div className="welcomeStateContent">
                     {modeBurst && <div className={`modeBurst ${mode === "NO_LIMITS" ? "enteringNoLimits" : "leavingNoLimits"}`} />}
                   </div>
                   <h1>{mode === "NORMAL" ? "How can I help you?" : "NO LIMITS"}</h1>
