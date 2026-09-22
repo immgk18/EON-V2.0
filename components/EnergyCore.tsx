@@ -14,6 +14,9 @@ type EnergyCoreProps = {
   state?: EnergyCoreState;
   playfulCommand?: string;
   immersive?: boolean;
+  eyeTracking?: boolean;
+  trackingSensitivity?: number;
+  glowEnabled?: boolean;
 };
 
 type Reaction = {
@@ -45,6 +48,9 @@ export default function EnergyCore({
   state = "idle",
   playfulCommand = "",
   immersive = false,
+  eyeTracking = true,
+  trackingSensitivity = 1,
+  glowEnabled = true,
 }: EnergyCoreProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -447,8 +453,10 @@ export default function EnergyCore({
       const r = reactionRef.current;
 
       // Mouse position is the only continuous visual input.
-      const lookX = pointerRef.current.active ? pointerRef.current.x : r.lookX;
-      const lookY = pointerRef.current.active ? pointerRef.current.y : r.lookY;
+      const rawLookX = pointerRef.current.active ? pointerRef.current.x : r.lookX;
+      const rawLookY = pointerRef.current.active ? pointerRef.current.y : r.lookY;
+      const lookX = eyeTracking ? rawLookX * trackingSensitivity : 0;
+      const lookY = eyeTracking ? rawLookY * trackingSensitivity : 0;
 
       const scale = Math.min(width, height) / (immersive ? 285 : 420);
       const cx = width / 2;
@@ -475,8 +483,10 @@ export default function EnergyCore({
         ctx.beginPath();
         ctx.arc(pupilX, pupilY, pupilSize, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(" + bright + ", 1)";
-        ctx.shadowBlur = 22 * scale;
-        ctx.shadowColor = "rgba(" + primary + ", 0.95)";
+        if (glowEnabled) {
+          ctx.shadowBlur = 22 * scale;
+          ctx.shadowColor = "rgba(" + primary + ", 0.95)";
+        }
         ctx.fill();
 
         ctx.restore();
@@ -513,8 +523,10 @@ export default function EnergyCore({
       ctx.strokeStyle = "rgba(" + bright + ", 1)";
       ctx.lineWidth = 2.2 * scale;
       ctx.lineCap = "round";
-      ctx.shadowBlur = 14 * scale;
-      ctx.shadowColor = "rgba(" + primary + ", 0.9)";
+      if (glowEnabled) {
+        ctx.shadowBlur = 14 * scale;
+        ctx.shadowColor = "rgba(" + primary + ", 0.9)";
+      }
       ctx.stroke();
       ctx.restore();
     };
@@ -525,7 +537,7 @@ export default function EnergyCore({
     return () => {
       window.removeEventListener("resize", resize);
     };
-  }, [state, cameraOn, immersive, pointerTick]);
+  }, [state, cameraOn, immersive, pointerTick, eyeTracking, trackingSensitivity, glowEnabled]);
 
   /*
    * ------------------------------------------------------------
