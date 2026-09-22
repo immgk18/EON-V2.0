@@ -586,6 +586,36 @@ export default function EnergyCore({
     setPointerTick((tick) => tick + 1);
   };
 
+  // The immersive face sits behind the chat UI, so its canvas may not
+  // receive pointer events. Track the mouse at window level instead.
+  useEffect(() => {
+    let frame = 0;
+
+    const handleWindowPointerMove = (event: PointerEvent) => {
+      cancelAnimationFrame(frame);
+
+      frame = requestAnimationFrame(() => {
+        updatePointer(event.clientX, event.clientY);
+      });
+    };
+
+    const handleWindowPointerLeave = () => {
+      pointerRef.current.active = false;
+      pointerRef.current.x = 0;
+      pointerRef.current.y = 0;
+      setPointerTick((tick) => tick + 1);
+    };
+
+    window.addEventListener("pointermove", handleWindowPointerMove);
+    window.addEventListener("pointerleave", handleWindowPointerLeave);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("pointermove", handleWindowPointerMove);
+      window.removeEventListener("pointerleave", handleWindowPointerLeave);
+    };
+  }, []);
+
   useEffect(() => {
     return () => stopCamera();
   }, []);
