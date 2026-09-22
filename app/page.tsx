@@ -1767,7 +1767,7 @@ export default function Home() {
               {(!response && (chatSessions.find((chat) => chat.id === currentChatId)?.messages.length ?? 0) === 0) && (
                 <div className="welcomeState">
                   <div className="welcomeCore">
-                    <EnergyCore state={coreState} playfulCommand={playfulCommand} />
+                    <EnergyCore state={coreState} playfulCommand={playfulCommand} immersive />
                     {modeBurst && <div className={`modeBurst ${mode === "NO_LIMITS" ? "enteringNoLimits" : "leavingNoLimits"}`} />}
                   </div>
                   <h1>{mode === "NORMAL" ? "How can I help you?" : "NO LIMITS"}</h1>
