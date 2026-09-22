@@ -13,6 +13,7 @@ export type EnergyCoreState =
 type EnergyCoreProps = {
   state?: EnergyCoreState;
   playfulCommand?: string;
+  immersive?: boolean;
 };
 
 type Reaction = {
@@ -43,6 +44,7 @@ declare global {
 export default function EnergyCore({
   state = "idle",
   playfulCommand = "",
+  immersive = false,
 }: EnergyCoreProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -562,7 +564,8 @@ export default function EnergyCore({
       }
 
       const scale =
-        Math.min(width, height) / 420;
+        Math.min(width, height) /
+        (immersive ? 285 : 420);
 
       const cx = width / 2;
       const cy =
@@ -1378,7 +1381,7 @@ export default function EnergyCore({
           width: "100%",
           height: "100%",
           minHeight: "420px",
-          maxWidth: "620px",
+          maxWidth: immersive ? "none" : "620px",
           cursor: "crosshair",
           touchAction: "none",
         }}
