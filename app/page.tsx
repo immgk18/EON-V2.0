@@ -1672,363 +1672,190 @@ export default function Home() {
   };
 
   return (
-    <main
-      className={`eonDesktop ${mode === "NO_LIMITS" ? "no-limits" : ""}`}
-    >
+    <main className={`eonChatApp ${mode === "NO_LIMITS" ? "no-limits" : ""}`}>
       <canvas ref={canvasRef} className="stars" />
-      <div className="desktopGlow" />
+      <div className="chatAmbient" />
 
-      <header className="desktopTopBar">
-        <div className="desktopBrand">
+      <header className="chatTopBar">
+        <div className="chatBrand">
+          <button type="button" className="mobileMenuButton" onClick={() => setActivePanel(activePanel === "SYSTEM" ? "CHAT" : "SYSTEM")} aria-label="Toggle sidebar">☰</button>
           <span className="brandMark">EON</span>
           <span className="brandName">ENHANCED OPERATIONS NETWORK</span>
         </div>
-
-        <nav className="desktopMenu" aria-label="EON desktop menu">
-          {["File", "Edit", "View", "Tools", "Agents", "Window"].map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="menuItem"
-              onClick={() => {
-                if (item === "File" || item === "Window") {
-                  setTerminalOpen((open) => !open);
-                  setResponse("TERMINAL TOGGLED • EON CHAT REMAINS AVAILABLE");
-                } else if (item === "Edit") {
-                  selectPanel("COMMANDS");
-                } else if (item === "Agents") {
-                  selectPanel("AGENTS");
-                } else if (item === "Tools") {
-                  selectPanel("TOOLS");
-                } else {
-                  selectPanel("CONTEXT");
-                }
-              }}
-            >
-              {item}
-            </button>
-          ))}
-        </nav>
-
-        <div className="desktopStatus">
-          <span className="onlineDot" />
-          <span>{mode === "NORMAL" ? "ONLINE" : "NO LIMITS"}</span>
+        <div className="chatTopCenter">
+          <span className="topModeDot" />
+          <span>{mode === "NORMAL" ? "EON" : "EON • NO LIMITS"}</span>
+        </div>
+        <div className="chatTopActions">
+          <span className="topStatus">● {isProcessing ? "THINKING" : "ONLINE"}</span>
+          <button type="button" className="topAction" onClick={() => setActivePanel("SETTINGS")}>⚙</button>
         </div>
       </header>
 
-      <div className="desktopWorkspace">
-        <aside className="systemRail">
-          <div className="railTitle">SYSTEM</div>
-          {[
-            ["SYSTEM", "◈"],
-            ["CHAT", "▣"],
-            ["HISTORY", "▤"],
-            ["CONTEXT", "◇"],
-            ["MEMORY", "◎"],
-            ["VISION", "◉"],
-            ["WEB", "⌁"],
-            ["AGENTS", "▦"],
-            ["TOOLS", "⚙"],
-            ["COMMANDS", "⌁"],
-            ...(mode === "NO_LIMITS" ? [["DESIGN", "◇"]] : []),
-          ].map(([panel, icon]) => (
-            <button
-              key={panel}
-              type="button"
-              className={`railButton ${
-                activePanel === panel ? "active" : ""
-              }`}
-              onClick={() => selectPanel(panel as typeof activePanel)}
-            >
-              <span>{icon}</span>
-              <small>{panel}</small>
+      <div className="chatLayout">
+        <aside className="chatSidebar">
+          <button type="button" className="newChatButton" onClick={startNewChat}>
+            <span>＋</span> New chat
+          </button>
+
+          <div className="sidebarSection">
+            <span className="sidebarLabel">WORKSPACE</span>
+            {[
+              ["CHAT", "▣"],
+              ["HISTORY", "▤"],
+              ["VISION", "◉"],
+              ["MEMORY", "◎"],
+              ["AGENTS", "▦"],
+              ["TOOLS", "⚙"],
+              ...(mode === "NO_LIMITS" ? [["DESIGN", "◇"]] : []),
+            ].map(([panel, icon]) => (
+              <button
+                key={panel}
+                type="button"
+                className={`sidebarItem ${activePanel === panel ? "active" : ""}`}
+                onClick={() => selectPanel(panel as typeof activePanel)}
+              >
+                <span>{icon}</span>
+                {panel}
+              </button>
+            ))}
+          </div>
+
+          <div className="sidebarSection sidebarLower">
+            <span className="sidebarLabel">SYSTEM</span>
+            <button type="button" className={`sidebarItem ${activePanel === "COMMANDS" ? "active" : ""}`} onClick={() => selectPanel("COMMANDS")}>⌁ Commands</button>
+            <button type="button" className={`sidebarItem ${activePanel === "WEB" ? "active" : ""}`} onClick={() => selectPanel("WEB")}>◎ Web</button>
+            <button type="button" className={`sidebarItem ${activePanel === "SETTINGS" ? "active" : ""}`} onClick={() => selectPanel("SETTINGS")}>⚙ Settings</button>
+          </div>
+
+          <div className="sidebarMode">
+            <div className="sidebarModeHeader">
+              <span className="modeIndicator" />
+              <span>{mode === "NORMAL" ? "NORMAL MODE" : "NO LIMITS MODE"}</span>
+            </div>
+            <button type="button" onClick={toggleMode}>
+              {mode === "NORMAL" ? "Enter No Limits" : "Restore Normal"}
             </button>
-          ))}
+          </div>
         </aside>
 
-        <section className="coreViewport">
-          <div className="coreHeader">
-            <span>EON CORE</span>
-            <span className="coreHeaderLine" />
-            <span>{coreState.toUpperCase()}</span>
+        <section className="chatMain">
+          <div className="conversationViewport">
+            <div className="conversationInner">
+              {(chatSessions.find((chat) => chat.id === currentChatId)?.messages ?? []).map((message) => (
+                <div key={message.id} className={`messageRow ${message.role === "user" ? "userRow" : "eonRow"}`}>
+                  <div className={`messageAvatar ${message.role === "user" ? "userAvatar" : "eonAvatar"}`}>
+                    {message.role === "user" ? "Y" : "E"}
+                  </div>
+                  <div className="messageBody">
+                    <div className="messageMeta">{message.role === "user" ? "You" : "EON"}</div>
+                    <div className="messageText">{message.content}</div>
+                  </div>
+                </div>
+              ))}
+
+              {response && (
+                <div className="messageRow eonRow liveResponse">
+                  <div className="messageAvatar eonAvatar">E</div>
+                  <div className="messageBody">
+                    <div className="messageMeta">EON</div>
+                    <div className="messageText">{response}</div>
+                  </div>
+                </div>
+              )}
+
+              {(!response && (chatSessions.find((chat) => chat.id === currentChatId)?.messages.length ?? 0) === 0) && (
+                <div className="welcomeState">
+                  <div className="welcomeCore">
+                    <EnergyCore state={coreState} playfulCommand={playfulCommand} />
+                    {modeBurst && <div className={`modeBurst ${mode === "NO_LIMITS" ? "enteringNoLimits" : "leavingNoLimits"}`} />}
+                  </div>
+                  <h1>{mode === "NORMAL" ? "How can I help you?" : "NO LIMITS"}</h1>
+                  <p>{mode === "NORMAL" ? "Ask EON anything. Your tools and workspaces appear when you need them." : "All connected EON workspaces are available."}</p>
+                  <div className="suggestionGrid">
+                    {[
+                      ["Analyze a file", "Use File Intelligence to understand a document"],
+                      ["Inspect an image", "Send an image to EON Vision"],
+                      ["Research something", "Use EON's web intelligence"],
+                      ["Build something", "Work with EON agents and tools"],
+                    ].map(([title, subtitle]) => (
+                      <button key={title} type="button" onClick={() => setCommand(title)}>
+                        <b>{title}</b><span>{subtitle}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="coreCanvas">
-            <EnergyCore
-              state={coreState}
-              playfulCommand={playfulCommand}
-            />
-            {modeBurst && (
-              <div
-                className={`modeBurst ${
-                  mode === "NO_LIMITS"
-                    ? "enteringNoLimits"
-                    : "leavingNoLimits"
-                }`}
-              />
-            )}
-          </div>
-
-          <div className="corePrompt">
-            <span className="promptGlyph">&gt;_</span>
-            <form
-              className="desktopCommand"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submitCommand();
-              }}
-            >
-              <input
-                value={command}
-                onChange={(event) => setCommand(event.target.value)}
-                placeholder={
-                  isProcessing
-                    ? "EON IS THINKING..."
-                    : "Ask EON anything..."
-                }
-                aria-label="Ask EON"
-                disabled={isProcessing}
-              />
-              <button
-                type="button"
-                className="voiceButton"
-                onClick={startVoice}
-                aria-label="Start voice command"
+          <div className="composerArea">
+            <div className="composerShell">
+              <button type="button" className="composerTool" onClick={() => setActivePanel("TOOLS")} aria-label="Open tools">＋</button>
+              <form
+                className="chatComposer"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submitCommand();
+                }}
               >
-                ◉
-              </button>
-              <button
-                type="submit"
-                className="coreSend"
-                disabled={isProcessing}
-                aria-label="Send command"
-              >
-                ↵
-              </button>
-            </form>
+                <input
+                  value={command}
+                  onChange={(event) => setCommand(event.target.value)}
+                  placeholder={isProcessing ? "EON is thinking..." : "Message EON..."}
+                  aria-label="Ask EON"
+                  disabled={isProcessing}
+                  autoComplete="off"
+                />
+                <button type="button" className={`composerVoice ${coreState === "listening" ? "listening" : ""}`} onClick={startVoice} aria-label="Voice">◉</button>
+                <button type="submit" className="composerSend" disabled={isProcessing || !command.trim()} aria-label="Send">↑</button>
+              </form>
+            </div>
+            <div className="composerHint">
+              <span>{mode === "NO_LIMITS" ? "NO LIMITS • CONNECTED WORKSPACES" : "EON can use AI, web, vision, memory, agents and tools"}</span>
+              <span>{selectedAgent !== "CORE" ? `AGENT: ${selectedAgent}` : "EON CORE"}</span>
+            </div>
           </div>
-
         </section>
 
-        <aside className="contextPanel">
-          <div className="panelHeading">
+        <aside className={`contextDrawer ${activePanel === "CHAT" ? "hiddenDrawer" : ""}`}>
+          <div className="drawerHeader">
             <span>{activePanel}</span>
-            <span className="panelIndicator">●</span>
+            <button type="button" onClick={() => setActivePanel("CHAT")}>×</button>
           </div>
-
-          <div className="panelBody">            {activePanel === "HISTORY" && (
-              <div className="historyWorkspace">
-                <div className="historyHeaderRow">
-                  <span>PREVIOUS CHATS</span>
-                  <button
-                    type="button"
-                    className="panelAction historyNewButton"
-                    onClick={startNewChat}
-                  >
-                    + NEW CHAT
-                  </button>
-                </div>
-
-                <div className="historyList">
-                  {chatSessions.length === 0 ? (
-                    <div className="chatEmptyState">
-                      NO PREVIOUS CHATS.
-                    </div>
-                  ) : (
-                    chatSessions.map((chat) => (
-                      <div
-                        key={chat.id}
-                        className={`historyItem ${
-                          currentChatId === chat.id ? "selected" : ""
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          className="historyItemOpen"
-                          onClick={() => openHistoryChat(chat.id)}
-                        >
-                          <span className="historyItemTitle">
-                            {chat.title}
-                          </span>
-                          <span className="historyItemMeta">
-                            {chat.messages.length} MESSAGES
-                          </span>
-                        </button>
-                        <button
-                          type="button"
-                          className="historyDeleteButton"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            deleteHistoryChat(chat.id);
-                          }}
-                          aria-label={`Delete chat ${chat.title}`}
-                          title="Delete chat"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="historyConversation">
-                  {(chatSessions.find((chat) => chat.id === currentChatId)?.messages ?? []).map((message) => (
-                    <div
-                      key={message.id}
-                      className={`chatMessage ${
-                        message.role === "user"
-                          ? "userMessage"
-                          : "assistantMessage"
-                      }`}
-                    >
-                      <span className="chatMessageRole">
-                        {message.role === "user" ? "YOU" : "EON"}
-                      </span>
-                      <div className="chatMessageContent">
-                        {message.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activePanel === "CHAT" && (
-              <div className="chatWorkspace">
-                <div className="chatWorkspaceHeader">
-                  <span>EON RESPONSE</span>
-                  <span>{isProcessing ? "PROCESSING" : "READY"}</span>
-                </div>
-
-                <div className="chatConversation">
-                  {(chatSessions.find((chat) => chat.id === currentChatId)?.messages ?? []).map((message) => (
-                    <div
-                      key={message.id}
-                      className={`chatMessage ${
-                        message.role === "user"
-                          ? "userMessage"
-                          : "assistantMessage"
-                      }`}
-                    >
-                      <span className="chatMessageRole">
-                        {message.role === "user" ? "YOU" : "EON"}
-                      </span>
-                      <div className="chatMessageContent">
-                        {message.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="chatResponseBox" aria-live="polite">
-                  {response ? (
-                    <div className="chatResponseText">
-                      {response}
-                    </div>
-                  ) : (
-                    <div className="chatEmptyState">
-                      ASK EON SOMETHING.
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  className="panelAction"
-                  onClick={() => {
-                    document.querySelector<HTMLInputElement>(
-                      'input[aria-label="Ask EON"]'
-                    )?.focus();
-                  }}
-                >
-                  FOCUS COMMAND
-                </button>
-              </div>
-            )}
-
-            {activePanel === "DESIGN" && <DesignWorkspace />}
-
-            {activePanel === "COMMANDS" && (
-              <div className="panelStack">
-                <button type="button" className="panelAction" onClick={() => setResponse(getHelpMessage().toUpperCase())}>SHOW COMMANDS</button>
-                <button type="button" className="panelAction" onClick={resetEON}>RESET EON</button>
-                <button type="button" className="panelAction" onClick={() => { stopSpeaking(); setResponse("SPEECH STOPPED"); }}>STOP SPEECH</button>
-              </div>
-            )}
-
-            {activePanel === "VOICE" && (
-              <div className="panelStack">
-                <button type="button" className="panelAction" onClick={startVoice}>TOGGLE VOICE</button>
-                <button type="button" className="panelAction" onClick={() => { stopSpeaking(); setResponse("VOICE OUTPUT STOPPED"); }}>STOP OUTPUT</button>
-              </div>
-            )}
-
-            {activePanel === "SETTINGS" && (
-              <div className="panelStack">
-                <div className="metricRow"><span>MODE</span><b>{mode}</b></div>
-                <div className="metricRow"><span>TERMINAL</span><b>{terminalOpen ? "OPEN" : "HIDDEN"}</b></div>
-                <button type="button" className="panelAction" onClick={() => setTerminalOpen((open) => !open)}>
-                  {terminalOpen ? "HIDE TERMINAL" : "OPEN TERMINAL"}
-                </button>
-              </div>
-            )}
-
-            {activePanel === "SYSTEM" && (
-              <>
-                <div className="metricRow"><span>CORE</span><b>ONLINE</b></div>
-                <div className="metricRow"><span>AI</span><b>READY</b></div>
-                <div className="metricRow"><span>WEB</span><b>READY</b></div>
-                <div className="metricRow"><span>VISION</span><b>READY</b></div>
-                <div className="metricRow"><span>MEMORY</span><b>READY</b></div>
-                <div className="metricRow"><span>MODE</span><b>{mode}</b></div>
-              </>
-            )}
-
-            {activePanel === "CONTEXT" && (
-              <div className="panelNote">
-                Current conversation context is available to EON through its
-                memory and request-routing layers.
-              </div>
-            )}
-
-            {activePanel === "MEMORY" && (
-              <div className="panelNote">
-                Local memory engine connected. Recent interaction context can
-                be stored and reused by EON.
+          <div className="drawerBody">
+            {activePanel === "HISTORY" && (
+              <div className="drawerStack">
+                <button type="button" className="drawerPrimary" onClick={startNewChat}>＋ NEW CHAT</button>
+                {chatSessions.map((chat) => (
+                  <div key={chat.id} className={`drawerChat ${currentChatId === chat.id ? "selected" : ""}`}>
+                    <button type="button" onClick={() => openHistoryChat(chat.id)}>
+                      <b>{chat.title}</b><small>{chat.messages.length} messages</small>
+                    </button>
+                    <button type="button" className="deleteChat" onClick={() => deleteHistoryChat(chat.id)}>×</button>
+                  </div>
+                ))}
               </div>
             )}
 
             {activePanel === "VISION" && (
-              <div className="panelStack">
-                <div className="panelNote">
-                  EON Vision is connected to the backend image-analysis engine.
-                  Upload an image to run visual analysis.
-                </div>
-                <label className="panelAction" style={{ display: "block", textAlign: "center", cursor: visionBusy ? "wait" : "pointer" }}>
-                  {visionBusy ? "ANALYZING IMAGE..." : "UPLOAD IMAGE"}
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
-                    onChange={handleVisionUpload}
-                    disabled={visionBusy}
-                    style={{ display: "none" }}
-                  />
+              <div className="drawerStack">
+                <p>Upload an image and EON will analyze visible information.</p>
+                <label className="drawerPrimary uploadButton">
+                  {visionBusy ? "ANALYZING..." : "UPLOAD IMAGE"}
+                  <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleVisionUpload} disabled={visionBusy} />
                 </label>
               </div>
             )}
 
-            {activePanel === "WEB" && (
-              <div className="panelNote">
-                Web intelligence route available through EON's request
-                router and grounded AI backend.
-              </div>
-            )}
+            {activePanel === "MEMORY" && <div className="drawerNote">Local memory engine connected. Recent interaction context can be stored and reused by EON.</div>}
+            {activePanel === "WEB" && <div className="drawerNote">Web intelligence is available through EON's request router and grounded AI backend.</div>}
 
             {activePanel === "AGENTS" && (
-              <div className="agentList">
+              <div className="agentDrawerList">
                 {EON_AGENTS.map((agent) => (
-                  <button key={agent.id} type="button" className={`agentCard ${selectedAgent === agent.id ? "selected" : ""}`} onClick={() => activateAgent(agent.id)}>
-                    <span className="agentCardTop"><b>{agent.name}</b><i>● ONLINE</i></span>
+                  <button key={agent.id} type="button" className={`agentDrawerCard ${selectedAgent === agent.id ? "selected" : ""}`} onClick={() => activateAgent(agent.id)}>
+                    <span><b>{agent.name}</b><i>● ONLINE</i></span>
                     <small>{agent.description}</small>
                     <em>ROUTE • {agent.destination}</em>
                   </button>
@@ -2037,81 +1864,57 @@ export default function Home() {
             )}
 
             {activePanel === "TOOLS" && (
-              <div className="panelStack">
-                <div className="panelNote">
-                  Deterministic tools are connected for arithmetic, unit
-                  conversion and UTC time. Use the command bar to invoke them.
-                </div>
-                <button
-                  type="button"
-                  className="panelAction"
-                  onClick={() => {
-                    setActivePanel("CHAT");
-                    setCommand("calculate 25 * 4");
-                    window.setTimeout(() => {
-                      document.querySelector<HTMLInputElement>(
-                        'input[aria-label="Ask EON"]'
-                      )?.focus();
-                    }, 0);
-                  }}
-                >
-                  TEST CALCULATOR
-                </button>
+              <div className="drawerStack">
+                <div className="drawerNote">Deterministic tools for arithmetic, unit conversion and UTC time.</div>
+                <button type="button" className="drawerPrimary" onClick={() => { setActivePanel("CHAT"); setCommand("calculate 25 * 4"); }}>TEST CALCULATOR</button>
               </div>
             )}
-          </div>
 
-          <div className="panelFooter">
-            ROUTE&nbsp; {speedInfo?.route ?? "STANDBY"}<br />
-            PRIORITY&nbsp; {speedInfo?.priority ?? "NORMAL"}
+            {activePanel === "COMMANDS" && (
+              <div className="drawerStack">
+                <button type="button" className="drawerPrimary" onClick={() => setResponse(getHelpMessage())}>SHOW COMMANDS</button>
+                <button type="button" className="drawerPrimary" onClick={resetEON}>RESET EON</button>
+                <button type="button" className="drawerPrimary" onClick={() => { stopSpeaking(); setResponse("Speech stopped."); }}>STOP SPEECH</button>
+              </div>
+            )}
+
+            {activePanel === "SETTINGS" && (
+              <div className="drawerStack">
+                <div className="drawerMetric"><span>MODE</span><b>{mode}</b></div>
+                <div className="drawerMetric"><span>CORE</span><b>{coreState.toUpperCase()}</b></div>
+                <div className="drawerMetric"><span>ROUTE</span><b>{speedInfo?.route ?? "STANDBY"}</b></div>
+                <button type="button" className="drawerPrimary" onClick={() => setTerminalOpen((open) => !open)}>{terminalOpen ? "HIDE TERMINAL" : "OPEN TERMINAL"}</button>
+              </div>
+            )}
+
+            {activePanel === "SYSTEM" && (
+              <div className="drawerStack">
+                {["CORE", "AI", "WEB", "VISION", "MEMORY", "AGENTS"].map((item) => <div key={item} className="drawerMetric"><span>{item}</span><b>READY</b></div>)}
+              </div>
+            )}
+
+            {activePanel === "CONTEXT" && <div className="drawerNote">Current conversation context is available through EON's memory and request-routing layers.</div>}
+            {activePanel === "DESIGN" && <DesignWorkspace />}
           </div>
         </aside>
       </div>
 
       {terminalOpen && (
-      <section className="terminalPanel">
-        <div className="terminalHeader">
-          <span>EON TERMINAL</span>
-          <span>COMMAND CONSOLE</span>
-        </div>
-        <div className="terminalOutput" aria-live="polite">
-          {terminalLines.map((line, index) => (
-            <div key={`${index}-${line}`} className="terminalLine">
-              {line}
-            </div>
-          ))}
-        </div>
-        <form
-          className="terminalInput"
-          onSubmit={(event) => {
+        <section className="chatTerminal">
+          <div className="terminalHeader"><span>EON TERMINAL</span><button type="button" onClick={() => setTerminalOpen(false)}>×</button></div>
+          <div className="terminalOutput">{terminalLines.map((line, index) => <div key={`${index}-${line}`}>{line}</div>)}</div>
+          <form className="terminalInput" onSubmit={(event) => {
             event.preventDefault();
             const form = event.currentTarget;
             const input = form.elements.namedItem("terminal") as HTMLInputElement;
             runTerminalCommand(input.value);
             input.value = "";
-          }}
-        >
-          <span>eon@core:~$</span>
-          <input
-            name="terminal"
-            placeholder="system"
-            autoComplete="off"
-            aria-label="EON terminal command"
-          />
-        </form>
-      </section>
+          }}>
+            <span>eon@core:~$</span>
+            <input name="terminal" placeholder="system" autoComplete="off" />
+          </form>
+        </section>
       )}
-
-      <footer className="desktopFooter">
-        <span>INTELLIGENCE</span>
-        <span>EXECUTION</span>
-        <span>AUTONOMY</span>
-        <span>BEYOND LIMITS</span>
-        <button type="button" onClick={toggleMode}>
-          {mode === "NORMAL" ? "ENTER NO LIMITS" : "RESTORE NORMAL"}
-        </button>
-        <button type="button" onClick={resetEON}>RESET</button>
-      </footer>
     </main>
   );
 }
