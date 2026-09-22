@@ -3805,3 +3805,88 @@ input:focus-visible {
   text-align:center;
   width:100%;
 }
+
+
+/* FINAL CHAT / FACE LAYER FIX */
+.chatMain { background:transparent !important; }
+
+.conversationViewport {
+  position:relative;
+  isolation:isolate;
+  background:rgba(8,9,11,.12) !important;
+}
+
+.chatFaceBackdrop {
+  z-index:0 !important;
+  pointer-events:none !important;
+}
+
+.conversationInner {
+  position:relative;
+  z-index:2;
+  background:transparent !important;
+}
+
+.messageRow {
+  position:relative;
+  z-index:3;
+  background:transparent !important;
+}
+
+.messageBody {
+  background:rgba(5,8,12,.14) !important;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+
+.userRow .messageBody,
+.eonRow .messageBody {
+  background:rgba(5,8,12,.14) !important;
+}
+
+.composerArea {
+  position:absolute !important;
+  z-index:100 !important;
+  pointer-events:auto !important;
+  background:linear-gradient(
+    transparent,
+    rgba(8,9,11,.62) 28%,
+    rgba(8,9,11,.82) 100%
+  ) !important;
+  backdrop-filter:none !important;
+}
+
+.composerShell,
+.chatComposer,
+.composerTool,
+.composerVoice,
+.composerSend,
+.chatComposer input {
+  position:relative;
+  z-index:101 !important;
+  pointer-events:auto !important;
+}
+
+.chatComposer {
+  background:rgba(8,11,16,.38) !important;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+
+.composerTool,
+.composerVoice,
+.composerSend {
+  background:rgba(8,11,16,.46) !important;
+}
+
+.composerHint {
+  position:relative;
+  z-index:101 !important;
+  pointer-events:none;
+}
+
+/* The face is visual-only; it must never block chat interaction. */
+.chatFaceBackdrop,
+.chatFaceBackdrop * {
+  pointer-events:none !important;
+}
