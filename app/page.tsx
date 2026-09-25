@@ -1975,7 +1975,8 @@ export default function Home() {
             )}
 
             {activePanel === "SYSTEM" && (
-              <SystemStatusPanel\n                mode={mode}\n                coreState={coreState}\n                isProcessing={isProcessing}\n                voiceActive={coreState === "listening"}\n                visionBusy={visionBusy}\n                selectedAgent={selectedAgent}\n              />
+              <SystemStatusPanel
+                mode={mode}\n                coreState={coreState}\n                isProcessing={isProcessing}\n                voiceActive={coreState === "listening"}\n                visionBusy={visionBusy}\n                selectedAgent={selectedAgent}\n              />
             )}
 
             {activePanel === "CONTEXT" && <div className="drawerNote">Current conversation context is available through EON's memory and request-routing layers.</div>}
