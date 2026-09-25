@@ -3890,3 +3890,124 @@ input:focus-visible {
 .chatFaceBackdrop * {
   pointer-events:none !important;
 }
+
+
+/* EON V2 live system status panel */
+.systemStatusPanel {
+  gap: 12px;
+}
+
+.systemStatusHero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  border: 1px solid rgba(255, 224, 105, 0.16);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 224, 105, 0.08), rgba(255, 255, 255, 0.025));
+}
+
+.systemStatusHero > div {
+  display: grid;
+  gap: 3px;
+}
+
+.systemEyebrow {
+  font-size: 8px;
+  letter-spacing: 2px;
+  opacity: 0.52;
+}
+
+.systemStatusHero strong {
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.systemStatusHero small {
+  font-size: 8px;
+  letter-spacing: 1.4px;
+  opacity: 0.55;
+}
+
+.systemPulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ffe069;
+  box-shadow: 0 0 14px rgba(255, 224, 105, 0.85);
+  animation: eonSystemPulse 1.7s ease-in-out infinite;
+}
+
+.systemStatusGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.systemStatusCard {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.systemStatusCard span,
+.systemStatusFooter span {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 1.4px;
+  opacity: 0.45;
+}
+
+.systemStatusCard b {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  letter-spacing: 0.8px;
+}
+
+.systemStatusCard b.ready {
+  color: rgba(255, 239, 164, 0.9);
+}
+
+.systemStatusCard b.active {
+  color: #fff4b0;
+  text-shadow: 0 0 10px rgba(255, 224, 105, 0.35);
+}
+
+.systemStatusCard b.standby {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.systemStatusFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.systemStatusFooter b {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+@keyframes eonSystemPulse {
+  0%, 100% { transform: scale(0.8); opacity: 0.65; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.no-limits .systemStatusHero {
+  border-color: rgba(255, 90, 90, 0.22);
+  background: linear-gradient(135deg, rgba(255, 70, 70, 0.09), rgba(255, 255, 255, 0.02));
+}
+
+.no-limits .systemPulse {
+  background: #ff5a5a;
+  box-shadow: 0 0 14px rgba(255, 90, 90, 0.9);
+}
