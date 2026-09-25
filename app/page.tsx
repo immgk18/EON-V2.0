@@ -1506,6 +1506,9 @@ export default function Home() {
       setSpeedInfo(
         null
       );
+
+      setMissionRunning(false);
+      setMissionStep("CORE");
     };
 
 
@@ -2016,6 +2019,10 @@ export default function Home() {
 
                 <button type="button" className="drawerPrimary" onClick={() => setTerminalOpen((open) => !open)}>{terminalOpen ? "HIDE TERMINAL" : "OPEN TERMINAL"}</button>
               </div>
+            )}
+
+            {activePanel === "MISSION" && (
+              <MissionModePanel activeStep={missionStep} running={missionRunning} onStart={startMissionMode} />
             )}
 
             {activePanel === "SYSTEM" && (
