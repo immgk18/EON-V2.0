@@ -8,6 +8,7 @@ import {
 
 import EnergyCore from "@/components/EnergyCore";
 import DesignWorkspace from "@/components/DesignWorkspace";
+import SystemStatusPanel from "@/components/SystemStatusPanel";
 
 import {
   createVoiceRecognition,
@@ -1974,9 +1975,7 @@ export default function Home() {
             )}
 
             {activePanel === "SYSTEM" && (
-              <div className="drawerStack">
-                {["CORE", "AI", "WEB", "VISION", "MEMORY", "AGENTS"].map((item) => <div key={item} className="drawerMetric"><span>{item}</span><b>READY</b></div>)}
-              </div>
+              <SystemStatusPanel\n                mode={mode}\n                coreState={coreState}\n                isProcessing={isProcessing}\n                voiceActive={coreState === "listening"}\n                visionBusy={visionBusy}\n                selectedAgent={selectedAgent}\n              />
             )}
 
             {activePanel === "CONTEXT" && <div className="drawerNote">Current conversation context is available through EON's memory and request-routing layers.</div>}
