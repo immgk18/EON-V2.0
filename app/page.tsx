@@ -9,6 +9,7 @@ import {
 import EnergyCore from "@/components/EnergyCore";
 import DesignWorkspace from "@/components/DesignWorkspace";
 import SystemStatusPanel from "@/components/SystemStatusPanel";
+import MissionModePanel from "@/components/MissionModePanel";
 
 import {
   createVoiceRecognition,
@@ -163,6 +164,9 @@ export default function Home() {
 
   const [playfulCommand, setPlayfulCommand] =
     useState("");
+
+  const [missionStep, setMissionStep] = useState<"CORE" | "AI" | "VOICE" | "VISION" | "MEMORY" | "AGENTS" | "READY">("CORE");
+  const [missionRunning, setMissionRunning] = useState(false);
 
   const [faceEnabled, setFaceEnabled] = useState(true);
   const [eyeTracking, setEyeTracking] = useState(true);
@@ -515,7 +519,45 @@ export default function Home() {
     } catch {
       // Visual transition still works.
     }
-  };  /* =========================================================
+  };  const startMissionMode = () => {
+    if (missionRunning) return;
+
+    const steps: Array<"CORE" | "AI" | "VOICE" | "VISION" | "MEMORY" | "AGENTS" | "READY"> = [
+      "CORE", "AI", "VOICE", "VISION", "MEMORY", "AGENTS", "READY",
+    ];
+
+    setActivePanel("MISSION");
+    setMissionRunning(true);
+    setMissionStep("CORE");
+    setIsProcessing(true);
+    setCoreState("thinking");
+    setResponse("EON MISSION MODE INITIALIZING...");
+    setTerminalLines((lines) => [
+      ...lines.slice(-5),
+      "MISSION MODE • INITIALIZING SYSTEM CHECK",
+    ]);
+
+    steps.forEach((step, index) => {
+      window.setTimeout(() => {
+        setMissionStep(step);
+        setResponse(step === "READY" ? "EON SYSTEM CHECK COMPLETE • ALL MODULES OPERATIONAL" : "MISSION CHECK • " + step + " MODULE VERIFIED");
+        setTerminalLines((lines) => [
+          ...lines.slice(-5),
+          "MISSION • " + step + " • " + (step === "READY" ? "SYSTEM READY" : "VERIFIED"),
+        ]);
+
+        if (step === "READY") {
+          setMissionRunning(false);
+          setIsProcessing(false);
+          setCoreState("speaking");
+          speak("Mission check complete. All EON modules are operational.", mode);
+          window.setTimeout(() => setCoreState("idle"), 3500);
+        }
+      }, index * 850);
+    });
+  };
+
+  /* =========================================================
      MODE SWITCH
      ========================================================= */
 
@@ -1468,7 +1510,7 @@ export default function Home() {
 
 
   const [activePanel, setActivePanel] = useState<
-    "SYSTEM" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS" | "DESIGN"
+    "SYSTEM" | "MISSION" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS" | "DESIGN"
   >("SYSTEM");
 
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -1500,6 +1542,7 @@ export default function Home() {
 
     const panelMessages: Record<typeof panel, string> = {
       SYSTEM: "SYSTEM STATUS PANEL OPEN",
+      MISSION: "MISSION MODE PANEL OPEN",
       CONTEXT: "CONTEXT ENGINE PANEL OPEN",
       MEMORY: "MEMORY ENGINE PANEL OPEN",
       VISION: "VISION MODULE READY",
@@ -1733,6 +1776,7 @@ export default function Home() {
 
           <div className="sidebarSection sidebarLower">
             <span className="sidebarLabel">SYSTEM</span>
+            <button type="button" className={`sidebarItem ${activePanel === "MISSION" ? "active" : ""}`} onClick={() => selectPanel("MISSION")}>✦ Mission</button>
             <button type="button" className={`sidebarItem ${activePanel === "COMMANDS" ? "active" : ""}`} onClick={() => selectPanel("COMMANDS")}>⌁ Commands</button>
             <button type="button" className={`sidebarItem ${activePanel === "WEB" ? "active" : ""}`} onClick={() => selectPanel("WEB")}>◎ Web</button>
             <button type="button" className={`sidebarItem ${activePanel === "SETTINGS" ? "active" : ""}`} onClick={() => selectPanel("SETTINGS")}>⚙ Settings</button>
