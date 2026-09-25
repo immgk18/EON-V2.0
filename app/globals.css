@@ -4011,3 +4011,36 @@ input:focus-visible {
   background: #ff5a5a;
   box-shadow: 0 0 14px rgba(255, 90, 90, 0.9);
 }
+
+
+/* EON Mission Mode */
+.missionPanel { display:flex; flex-direction:column; gap:12px; }
+.missionHero { display:flex; align-items:center; justify-content:space-between; padding:15px; border:1px solid rgba(255,224,105,.18); border-radius:12px; background:linear-gradient(135deg,rgba(255,224,105,.08),rgba(255,255,255,.02)); }
+.missionHero > div { display:grid; gap:4px; }
+.missionEyebrow { color:var(--chat-accent); font:700 7px monospace; letter-spacing:1.8px; }
+.missionHero strong { color:#f1f3f7; font-size:14px; letter-spacing:1px; }
+.missionHero small { color:#747d8b; font-size:8px; letter-spacing:1px; }
+.missionCore { width:12px; height:12px; border-radius:50%; background:#ffe069; box-shadow:0 0 16px rgba(255,224,105,.65); }
+.missionCoreActive { animation:eonMissionPulse .85s ease-in-out infinite; }
+.missionTimeline { display:flex; flex-direction:column; gap:6px; }
+.missionStep { display:flex; align-items:center; gap:9px; padding:8px 9px; border:1px solid rgba(255,255,255,.055); border-radius:8px; background:rgba(255,255,255,.018); }
+.missionStepDot { width:19px; height:19px; flex:0 0 19px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.12); border-radius:50%; color:#68717f; font:700 7px monospace; }
+.missionStep div { display:flex; flex-direction:column; gap:2px; }
+.missionStep b { color:#9da6b4; font:700 8px monospace; letter-spacing:1px; }
+.missionStep small { color:#596271; font:700 7px monospace; }
+.missionStep.active { border-color:rgba(255,224,105,.3); background:rgba(255,224,105,.055); }
+.missionStep.active .missionStepDot { color:#ffe069; border-color:#ffe069; box-shadow:0 0 10px rgba(255,224,105,.3); }
+.missionStep.active b { color:#fff0a1; }
+.missionStep.complete .missionStepDot { color:#7fe58b; border-color:rgba(127,229,139,.45); }
+.missionStep.complete b { color:#d9e2dc; }
+.missionStep.complete small { color:#6f9d76; }
+.missionProgress { height:3px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.07); }
+.missionProgress span { display:block; height:100%; border-radius:inherit; background:#ffe069; box-shadow:0 0 12px rgba(255,224,105,.7); transition:width .35s ease; }
+.missionLaunch { width:100%; padding:11px; border:1px solid rgba(255,224,105,.3); border-radius:8px; background:rgba(255,224,105,.07); color:#ffe99a; font:700 8px monospace; letter-spacing:1.2px; cursor:pointer; }
+.missionLaunch:hover:not(:disabled) { background:rgba(255,224,105,.12); border-color:rgba(255,224,105,.5); }
+.missionLaunch:disabled { cursor:wait; opacity:.55; }
+.missionReady { padding:9px 10px; border:1px solid rgba(127,229,139,.2); border-radius:8px; color:#8bc493; background:rgba(127,229,139,.035); font:700 7px/1.5 monospace; text-align:center; }
+@keyframes eonMissionPulse { 0%,100% { transform:scale(.8); opacity:.6; } 50% { transform:scale(1.25); opacity:1; } }
+.no-limits .missionHero { border-color:rgba(255,90,90,.22); background:linear-gradient(135deg,rgba(255,70,70,.08),rgba(255,255,255,.02)); }
+.no-limits .missionCore { background:#ff5a5a; box-shadow:0 0 16px rgba(255,90,90,.75); }
+.no-limits .missionStep.active .missionStepDot { color:#ff7373; border-color:#ff5a5a; }
