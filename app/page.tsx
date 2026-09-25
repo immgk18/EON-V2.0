@@ -1536,7 +1536,7 @@ export default function Home() {
   ]);
 
   const selectPanel = (
-    panel: "SYSTEM" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS" | "DESIGN"
+    panel: "SYSTEM" | "MISSION" | "CHAT" | "HISTORY" | "CONTEXT" | "MEMORY" | "VISION" | "WEB" | "AGENTS" | "TOOLS" | "COMMANDS" | "VOICE" | "SETTINGS" | "DESIGN"
   ) => {
     setActivePanel(panel);
 
